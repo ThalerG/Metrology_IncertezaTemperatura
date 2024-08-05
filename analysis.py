@@ -31,7 +31,7 @@ Tamb_2 = 24 # Temperatura ambiente no início do teste
 k = 234.5 # Recíproco do coeficiente de temperatura do resistor
 alpha = 1/(k+Tamb_1) # Coeficiente de temperatura do resistor
 
-s_R1 = 0.01 # Incerteza da medição de resistência no início do teste
+s_R1 = s_dR # Incerteza da medição de resistência no início do teste
 s_Tamb1 = 0.1 # Incerteza da medição de temperatura no início do teste
 s_Tamb2 = 0.1 # Incerteza da medição de temperatura no final do teste
 
@@ -43,6 +43,18 @@ s_y = s_dR
 
 # Generate HTML report
 html_report = "<html>\n<head>\n<title>Analysis Report</title>\n</head>\n<body>\n"
+
+# Test Variables
+html_report += "<h2>Test Variables</h2>\n"
+html_report += "<ul>\n"
+html_report += f"<li>Resistance at the beginning of the test [Ω]: {R1}</li>\n"
+html_report += f"<li>Ambient temperature [°C]: {Tamb_1}</li>\n"
+html_report += f"<li>Coefficient of temperature: {alpha}</li>\n"
+html_report += f"<li>Uncertainty of initial time [s]: {s_t0}</li>\n"
+html_report += f"<li>Uncertainty of acquisition time [s]: {s_dt}</li>\n"
+html_report += f"<li>Uncertainty of resistance measurement [Ω]: {s_dR}</li>\n"
+html_report += f"<li>Uncertainty of ambient temperature measurement [°C]: {s_Tamb1}</li>\n"
+html_report += "</ul>\n\n"
 
 df_values = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
 
@@ -70,7 +82,7 @@ for (k,model) in enumerate(models):
     x_plot = np.insert(x, 0, 0)
     s_R= uncertainty_model(x_plot)
 
-    html_report += f"<h2>Model {k+1}</h2>\n"
+    html_report += f"<h2>Model {k+1}: {get_formula(model[0], model[1], params)}</h2>\n"
 
     fig = make_subplots()
     fig.add_trace(go.Scatter(x=x_plot, y=estimated_model(x_plot), name='ODR Estimation', line=dict(color='red')))
@@ -84,7 +96,7 @@ for (k,model) in enumerate(models):
 
     df_values.loc[k] = [model[0], model[1], result.sum_square, R2, s_R2, T2, s_T2]
 
-html_report += f"<h2>Comparacao</h2>\n"
+html_report += f"<h2>Model comparison</h2>\n"
 
 fig = make_subplots()
 for k in range(len(results)):
@@ -100,5 +112,5 @@ html_report += df_values.to_html(index=False, classes='centered')
 html_report += "</body>\n</html>"
 
 # Save the HTML report to a file
-with open("report.html", "w", encoding="utf-8") as file:
+with open("report.html", "w", encoding="utf-16") as file:
     file.write(html_report)

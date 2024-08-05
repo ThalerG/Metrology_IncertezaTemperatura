@@ -206,6 +206,55 @@ def generate_estimation_uncertainty_models(params: List[float], s_params: List[f
         
     return model
 
+def get_formula(type: str ='poly', degree: int = 1, params: List[float] = None) -> str:
+    """
+    Returns a HTML string representation of the formula of the model based on the specified type and degree.
+    Parameters:
+    - type (str): The type of model. Valid options are 'poly' and 'exp'. Default is 'poly'.
+    - degree (int): The degree of the polynomial model. Only applicable when type is 'poly'. Default is 1.
+    - params (List[float]): List of parameters for the model. If provided, the returned formula will use these parameters.
+    Returns:
+    - formula (str): The string representation of the model formula.
+    Example usage:
+    >>> get_formula('poly', 2)
+    'a<sub>0</sub> + a<sub>1</sub>x + a<sub>2</sub>x<sup>2</sup>'
+    >>> get_formula('exp')
+    'a<sub>0</sub> + a<sub>1</sub>e<sup>a<sub>2</sub>x</sup>'
+    """
+    if type == 'poly':
+        for i in range(degree+1):
+            if params is None:
+                if i == 0:
+                    formula = f'a<sub>{i}</sub>'
+                else:
+                    formula += f'+ a<sub>{i}</sub>x<sup>{i}</sup>'
+            else:
+                if i == 0:
+                    formula = f'{params[i]:.5g}'
+                else:
+                    if params[i] < 0:
+                        formula += f'- {abs(params[i]):.3g}x'
+                    else:
+                        formula += f'+ {params[i]:.3g}x'
+                    
+                    if i > 1:
+                        formula += f'<sup>{i}</sup>'
+
+                
+        return formula
+    
+    if type == 'exp':
+        if params is None:
+            formula = 'a<sub>0</sub> + a<sub>1</sub>e<sup>a<sub>2</sub>x</sup>'
+        else:
+            if params[1] < 0:
+                formula = f'{params[0]:.5g} - {abs(params[1]):.3g}*e<sup>{params[2]:.3g}x</sup>'
+            else:
+                formula = f'{params[0]:.5g} + {params[1]:.3g}*e<sup>{params[2]:.3g}x</sup>'
+        return formula
+
+    raise ValueError("Invalid model type. Must be 'poly' or 'exp'.")
+
 if __name__ == "__main__":
     # Parâmetros iniciais
     initial_params = [2.0, 1.0]
