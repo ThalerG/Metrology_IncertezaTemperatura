@@ -64,6 +64,148 @@ def estimate_model_with_uncertainty(x: Union[np.ndarray, List[float]],
 
     return fitted_params, uncertainty, result
 
+
+def final_temperature(R1:float, R2:float, T1,alpha:float):
+    """
+    Calculates the temperature T2 based on the resistance values R2 and R1, the temperature coefficient alpha, and the ambient temperature Tamb_1.
+    Parameters:
+    - R1 (float): Initial resistance.
+    - R2 (float): Final resistance.
+    - T1 (float): Temperature at the beginning of the test (ambient temperature).
+    - alpha (float): Temperature coefficient.
+    Returns:
+    - T2 (float): Calculated temperature T2.
+    """
+    return (R2 - R1) / (R1 * alpha) + T1
+
+def final_temperature_uncertainty(R1:float, R2:float, T1:float, alpha:float, s_R1:float, s_R2:float, s_T1:float):
+    """
+    Calculates the combined uncertainty of temperature (s_T2) based on the given parameters.
+    Parameters:
+    R1 (float): Initial resistance value.
+    R2 (float): Final resistance value.
+    T1 (float): Ambient temperature.
+    alpha (float): Coefficient of resistance-temperature relationship.
+    s_R1 (float): Uncertainty of initial resistance.
+    s_R2 (float): Uncertainty of final resistance.
+    s_T1 (float): Uncertainty of ambient temperature.
+    Returns:
+    s_T2 (float): Combined uncertainty of temperature.
+    Notes:
+    - The combined uncertainty is calculated as the square root of the sum of squares of individual uncertainties.
+    - The individual uncertainty is derived from the partial derivative of the temperature equation with respect to each parameter. The original equation is:
+    T2 = (R2 - R1) / (R1 * alpha) + T1
+    """
+    s_T2 = [1*s_T1, # Uncertainty of ambient temperature
+            -R2/(alpha*(R1**2))*s_R1, # Uncertainty of initial resistance
+            1/(alpha*R1)*s_R2] # Uncertainty of final resistance
+    
+    return np.linalg.norm(s_T2)
+
+def generate_estimation_models(type: str ='poly', degree:int = 1, params: List[float] = None) -> Callable[[Union[float, np.ndarray]], Union[float, np.ndarray]]:
+    """
+    Returns a model function based on the specified type and degree.
+    Parameters:
+    - type (str): The type of model to be returned. Valid options are 'poly' and 'exp'. Default is 'poly'.
+    - degree (int): The degree of the polynomial model. Only applicable when type is 'poly'. Default is 1.
+    - params (List[float]): List of parameters for the model. If provided, the returned model function will use these parameters.
+    Returns:
+    - model (function): The model function that takes parameters and input values and returns the estimated output.
+    Example usage:
+    >>> poly_model = estimation_models('poly', 2)
+    >>> poly_model([1, 2, 3], 4)
+    27
+    >>> exp_model = estimation_models('exp')
+    >>> exp_model([1, 2, 3], 4)
+    53.598150033144236
+    """
+
+    if params is None: # If no parameters are provided, return a model function that takes parameters as input
+        if type == 'poly':
+            def model(parameters, x):
+                pow = np.array(range(degree+1))
+                return sum([parameters[i]*x**i for i in pow])
+        
+        if type == 'exp':
+            def model(parameters, x):
+                return parameters[0] + parameters[1] * np.exp(parameters[2] * x)
+        
+        return model
+
+    else: # If parameters are provided, return a model function that uses the provided parameters
+        if type == 'poly':
+
+            if len(params) != degree + 1:
+                raise ValueError("The number of elements in params for exponential functions must be equal to 3.")
+        
+            def model(x):
+                pow = np.array(range(degree+1))
+                return sum([params[i]*x**i for i in pow])
+        
+        if type == 'exp':
+            if len(params) != 3:
+                raise ValueError("The number of elements in params for exponential functions must be equal to 3.")
+            
+            def model(x):
+                return params[0] + params[1] * np.exp(params[2] * x)
+        
+        return model
+
+    
+    
+def generate_estimation_uncertainty_models(params: List[float], s_params: List[float], s_x: float, type: str ='poly', degree: int = 1) -> Callable[[Union[float, np.ndarray]], float]:
+    """
+    Returns a model function that calculates the estimation uncertainty based on the given parameters.
+    Parameters:
+    - params (List[float]): List of parameters for the model.
+    - s_params (List[float]): List of uncertainties for the parameters.
+    - s_x (float): Uncertainty of x.
+    - type (str, optional): Type of model to use. Defaults to 'poly'.
+    - degree (int, optional): Degree of the polynomial model. Defaults to 1.
+    Returns:
+    - model (Callable[[Union[float, np.ndarray]], float]): Model function that calculates the estimation uncertainty. Works for array or scalar.
+    Raises:
+    - None
+    Example usage:
+    >>> params = [1, 2, 3]
+    >>> s_params = [0.1, 0.2, 0.3]
+    >>> s_x = 0.01
+    >>> model_func = estimation_uncertainty_models(params, s_params, s_x, type='poly', degree=2)
+    >>> uncertainty = model_func(5)
+    ```    
+    """
+
+    if type == 'poly':
+        if len(params) != degree + 1:
+            raise ValueError("The number of elements in params for polynomial functions must be equal to degree + 1.")
+        
+        def model(x: Union[float, np.ndarray]):
+            if hasattr(x, "__iter__"):
+                return [model(x_el) for x_el in x]
+            else:
+                pow = np.array(range(degree+1))
+                s_model = x**pow * s_params # Uncertainty for each polynomial term beta_i is x**i * s_beta_i
+                np.append(s_model, np.sum(pow[1:]*params[1:]*x**(pow[1:]-1))*s_x) # Uncertainty of x
+
+            return np.linalg.norm(s_model) # Combined uncertainty is the square root of the sum of squares
+            
+    if type == 'exp':
+        if len(params) != 3:
+            raise ValueError("The number of elements in params for exponential functions must be equal to 3.")
+        
+        def model(x: Union[float, np.ndarray]):
+            if hasattr(x, "__iter__"):
+                return [model(x_el) for x_el in x]
+            else:
+                s_model = [1*s_params[0], # Uncertainty of parameter 0
+                    np.exp(params[2]*x)*s_params[1], # Uncertainty of parameter 1
+                    x*params[1]*np.exp(params[2]*x)*s_params[2], # Uncertainty of parameter 2
+                    params[1]*params[2]*np.exp(params[2]*x)*s_x, # Uncertainty of x
+                    ]
+                return np.linalg.norm(s_model)
+        
+    return model
+
 if __name__ == "__main__":
     # Parâmetros iniciais
     initial_params = [2.0, 1.0]
