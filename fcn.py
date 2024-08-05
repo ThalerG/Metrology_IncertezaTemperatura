@@ -7,7 +7,8 @@ def estimate_model_with_uncertainty(x: Union[np.ndarray, List[float]],
                                     s_x: Optional[Union[float, np.ndarray, List[float]]] = None,
                                     s_y: Optional[Union[float, np.ndarray, List[float]]] = None,
                                     model: Union[str, Callable] = 'lin',
-                                    initial_params: Optional[List[float]] = None
+                                    initial_params: Optional[List[float]] = None,
+                                    **kwargs
                                     ) -> Tuple[np.ndarray, np.ndarray, odr.Output]:
     
     '''
@@ -20,6 +21,7 @@ def estimate_model_with_uncertainty(x: Union[np.ndarray, List[float]],
     - s_y (scalar or array-like, optional): Standard deviations of the dependent variable data. Default is None.
     - model (str or callable, optional): The model to fit. Can be 'lin' for a linear model, 'exp' for an exponential model, or a callable function. Default is 'lin'.
     - initial_params (list): Initial guess for the model parameters. Default is [1.0, 1.0] if model is 'lin' or [1.0, 1.0, 1.0] if model is 'exp'. If model is callable, initial_params must be provided.
+    - **kwargs: Additional keyword arguments to be passed to the ODR fitting process.
 
     Returns:
     - fitted_params (array): Estimated parameters of the model.
@@ -51,7 +53,7 @@ def estimate_model_with_uncertainty(x: Union[np.ndarray, List[float]],
     data = odr.RealData(x, y, sx = s_x, sy = s_y)
 
     # ODR fit
-    odr_fit = odr.ODR(data, model, beta0=initial_params)
+    odr_fit = odr.ODR(data, model, beta0=initial_params, **kwargs)
     result = odr_fit.run()
 
     # Fitted parameters
