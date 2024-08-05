@@ -1,7 +1,15 @@
 import numpy as np
 from scipy import odr
+from typing import Union, Callable, List, Tuple, Optional
 
-def estimate_model_with_uncertainty(x, y, s_x=None, s_y=None, model='lin', initial_params=None):
+def estimate_model_with_uncertainty(x: Union[np.ndarray, List[float]],
+                                    y: Union[np.ndarray, List[float]],
+                                    s_x: Optional[Union[float, np.ndarray, List[float]]] = None,
+                                    s_y: Optional[Union[float, np.ndarray, List[float]]] = None,
+                                    model: Union[str, Callable] = 'lin',
+                                    initial_params: Optional[List[float]] = None
+                                    ) -> Tuple[np.ndarray, np.ndarray, odr.Output]:
+    
     '''
     Estimates the parameters of a given model with associated uncertainties using Orthogonal Distance Regression (ODR).
 
