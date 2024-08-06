@@ -18,9 +18,9 @@ models = [('poly',1),
 
 s_t0 = 1 # Incerteza do tempo inicial
 
-s_dt = 0.001 # Incerteza do tempo de aquisição
+s_dt = 0.1 # Incerteza do tempo de aquisição
 
-s_dR = 0.001 # Incerteza da medição de resistência
+s_dR = 1 # Incerteza da medição de resistência
 
 # Condições de teste
 

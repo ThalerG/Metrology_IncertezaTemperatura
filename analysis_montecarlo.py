@@ -79,7 +79,7 @@ if __name__ == '__main__':
             ('exp',0)
             ]
 
-    N_montecarlo = 1000000 # Número de simulações de Monte Carlo 
+    N_montecarlo = 100000 # Número de simulações de Monte Carlo 
 
     x_og = df['Time'].values
     y_og = df['Resistance'].values
@@ -100,8 +100,8 @@ if __name__ == '__main__':
     html_report += f"<li>Number of Monte Carlo simulations: {N_montecarlo}</li>\n"
     html_report += "</ul>\n\n"
 
-    df_values = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
-    df_stdvalues = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
+    df_values = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Estimation uncertainty', 'Temperature'])
+    df_stdvalues = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Estimation uncertainty', 'Temperature'])
 
     results = []
     results_allModels = []
@@ -133,45 +133,24 @@ if __name__ == '__main__':
         # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
         mean_R2 = np.mean([result['R2'] for result in results_model['results']])
         mean_s_R2 = np.mean([result['s_R2'] for result in results_model['results']])
-        mean_T2 = np.mean([result['T2'] for result in results_model['results']])
-        mean_s_T2 = np.mean([result['s_T2'] for result in results_model['results']])
         sum_square = np.mean([result['result'].sum_square for result in results_model['results']])
 
+        T2 = final_temperature(R1, mean_R2, Tamb_1, alpha)
+
         # Add the mean values to the dataframe
-        df_values.loc[k] = [model[0], model[1], sum_square, mean_R2, mean_s_R2, mean_T2, mean_s_T2]
+        df_values.loc[k] = [model[0], model[1], sum_square, mean_R2, mean_s_R2, T2]
 
         # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
         std_R2 = np.std([result['R2'] for result in results_model['results']])
         std_s_R2 = np.std([result['s_R2'] for result in results_model['results']])
-        std_T2 = np.std([result['T2'] for result in results_model['results']])
-        std_s_T2 = np.std([result['s_T2'] for result in results_model['results']])
         std_sum_square = np.std([result['result'].sum_square for result in results_model['results']])
 
+        s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1,alpha, s_R1, std_R2, s_Tamb1)
+
         # Add the standard deviation values to the dataframe
-        df_stdvalues.loc[k] = [model[0], model[1], std_sum_square, std_R2, std_s_R2, std_T2, std_s_T2]
+        df_stdvalues.loc[k] = [model[0], model[1], std_sum_square, std_R2, std_s_R2, s_T2]
 
     html_report += f"<h2>Model comparison</h2>\n"
-
-    # Extract T2 values for each model
-    T2_values = []
-    for model_result in results_allModels:
-        for result in model_result['results']:
-            T2_values.append(result['T2'])
-
-    # Create a dataframe with T2 values and corresponding model type and degree
-    df_T2 = pd.DataFrame({'T2': T2_values, 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
-
-    for k in range(len(df_T2)):
-        df_T2.loc[k, 'Model Type'] = f"{df_T2.loc[k, 'Model Type']} {df_T2.loc[k, 'Degree']}" if df_T2.loc[k, 'Model Type'] == 'poly' else df_T2.loc[k, 'Model Type']
-
-    # Create a violin plot
-    fig = px.violin(df_T2, x='Model Type', y='T2', color='Model Type')
-
-    # Update layout
-    fig.update_layout(xaxis_title='Model Type and Degree', yaxis_title='Temperature [°C]')
-
-    # Add the violin plot to the HTML report
-    html_report += fig.to_html(full_html=False)
 
     # Create a dataframe with R2 values and corresponding model type and degree
     df_R2 = pd.DataFrame({'R2': [result['R2'] for model_result in results_allModels for result in model_result['results']], 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
@@ -188,6 +167,49 @@ if __name__ == '__main__':
     # Add the violin plot to the HTML report
     html_report += fig.to_html(full_html=False)
 
+    # Extract T2 values for each model
+    T2_values = []
+    s_T2_values = []
+    for model_result in results_allModels:
+        for result in model_result['results']:
+            T2_values.append(result['T2'])
+            s_T2_values.append(result['s_T2'])
+
+    # Create a dataframe with T2 values and corresponding model type and degree
+    df_T2 = pd.DataFrame({'T2': T2_values, 's_T2': s_T2_values , 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
+
+    for k in range(len(df_T2)):
+        df_T2.loc[k, 'Model Type'] = f"{df_T2.loc[k, 'Model Type']} {df_T2.loc[k, 'Degree']}" if df_T2.loc[k, 'Model Type'] == 'poly' else df_T2.loc[k, 'Model Type']
+
+    # Create the figure object
+    fig = go.Figure()
+
+    # Plot the Gaussian curve for each model
+    for model_result in results_allModels:
+        model_type = model_result['type']
+        degree = model_result['degree']
+        T2_values = [result['T2'] for result in model_result['results']]
+        s_T2_values = [result['s_T2'] for result in model_result['results']]
+
+        # Calculate the mean and standard deviation of T2 values
+        mean_T2 = np.mean(T2_values)
+        std_T2 = np.std(T2_values)
+
+        # Create the x-axis values for the Gaussian curve
+        x = np.linspace(mean_T2 - 3 * std_T2, mean_T2 + 3 * std_T2, 100)
+
+        # Calculate the y-axis values for the Gaussian curve
+        y = 1 / (std_T2 * np.sqrt(2 * np.pi)) * np.exp(-0.5 * ((x - mean_T2) / std_T2) ** 2)
+
+        # Add the trace to the figure
+        fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name=f'{model_type} {degree}'))
+
+    # Update layout
+    fig.update_layout(xaxis_title='Temperature [°C]', yaxis_title='Probability Density', showlegend=True)
+
+    # Add the plot to the HTML report
+    html_report += fig.to_html(full_html=False)
+
     # Add the dataframe as a table in the html file
     html_report += "<h2>Mean and Std values</h2>\n"
     html_report += "<table class='centered'>\n"
@@ -198,7 +220,6 @@ if __name__ == '__main__':
     html_report += "<th>Resistance [Ω]</th>\n"
     html_report += "<th>Resistance estimation uncertainty [Ω]</th>\n"
     html_report += "<th>Temperature [°C]</th>\n"
-    html_report += "<th>Temperature uncertainty [°C]</th>\n"
     html_report += "</tr>\n"
 
     for i in range(len(df_values)):
@@ -207,9 +228,8 @@ if __name__ == '__main__':
         html_report += f"<td>{df_values.loc[i, 'Degree']}</td>\n"
         html_report += f"<td>{df_values.loc[i, 'SSE']:.5g} ± {df_stdvalues.loc[i, 'SSE']:.5g}</td>\n"
         html_report += f"<td>{df_values.loc[i, 'Resistance']:.5g} ± {df_stdvalues.loc[i, 'Resistance']:.5g}</td>\n"
-        html_report += f"<td>{df_values.loc[i, 'Uncertainty']:.5g} ± {df_stdvalues.loc[i, 'Uncertainty']:.5g}</td>\n"
+        html_report += f"<td>{df_values.loc[i, 'Estimation uncertainty']:.5g} ± {df_stdvalues.loc[i, 'Estimation uncertainty']:.5g}</td>\n"
         html_report += f"<td>{df_values.loc[i, 'Temperature']:.5g} ± {df_stdvalues.loc[i, 'Temperature']:.5g}</td>\n"
-        html_report += f"<td>{df_values.loc[i, 'Temperature Uncertainty']:.5g} ± {df_stdvalues.loc[i, 'Temperature Uncertainty']:.5g}</td>\n"
         html_report += "</tr>\n"
 
     html_report += "</table>\n"
