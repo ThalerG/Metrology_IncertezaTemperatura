@@ -63,6 +63,7 @@ html_report += f"<li>Uncertainty of ambient temperature measurement [°C]: {s_Ta
 html_report += "</ul>\n\n"
 
 df_values = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
+df_stdvalues = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
 
 results = []
 results_allModels = []
@@ -123,8 +124,25 @@ for (k,model) in enumerate(tqdm.tqdm(models, desc = 'Model', position=0)):
 
     results.append(estimated_model(x_plot))
 
-    df_values.loc[k] = [model[0], model[1], result.sum_square, R2, s_R2, T2, s_T2]
+        # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
+    mean_R2 = np.mean([result['R2'] for result in results_model['results']])
+    mean_s_R2 = np.mean([result['s_R2'] for result in results_model['results']])
+    mean_T2 = np.mean([result['T2'] for result in results_model['results']])
+    mean_s_T2 = np.mean([result['s_T2'] for result in results_model['results']])
+    sum_square = np.mean([result['result'].sum_square for result in results_model['results']])
 
+    # Add the mean values to the dataframe
+    df_values.loc[k] = [model[0], model[1], sum_square, mean_R2, mean_s_R2, mean_T2, mean_s_T2]
+
+    # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
+    std_R2 = np.std([result['R2'] for result in results_model['results']])
+    std_s_R2 = np.std([result['s_R2'] for result in results_model['results']])
+    std_T2 = np.std([result['T2'] for result in results_model['results']])
+    std_s_T2 = np.std([result['s_T2'] for result in results_model['results']])
+    std_sum_square = np.std([result['result'].sum_square for result in results_model['results']])
+
+    # Add the standard deviation values to the dataframe
+    df_stdvalues.loc[k] = [model[0], model[1], std_sum_square, std_R2, std_s_R2, std_T2, std_s_T2]
 
 html_report += f"<h2>Model comparison</h2>\n"
 
@@ -165,54 +183,12 @@ fig.update_layout(xaxis_title='Model Type and Degree', yaxis_title='Resistance [
 html_report += fig.to_html(full_html=False)
 
 # Add the dataframe as a table in the html file
+html_report += "<h2>Mean values</h2>\n"
 html_report += df_values.to_html(index=False, classes='centered')
 
-html_report += "</body>\n</html>"
-
-# Create a dataframe with SSE values and corresponding model type and degree
-df_SSE = pd.DataFrame({'SSE': [result['result'].sum_square for model_result in results_allModels for result in model_result['results']], 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
-
-for k in range(len(df_SSE)):
-    df_SSE.loc[k, 'Model Type'] = f"{df_SSE.loc[k, 'Model Type']} {df_SSE.loc[k, 'Degree']}" if df_SSE.loc[k, 'Model Type'] == 'poly' else df_SSE.loc[k, 'Model Type']
-
-# Create a violin plot for SSE
-fig = px.violin(df_SSE, x='Model Type', y='SSE', color='Model Type')
-
-# Update layout
-fig.update_layout(xaxis_title='Model Type and Degree', yaxis_title='SSE')
-
-# Add the violin plot to the HTML report
-html_report += fig.to_html(full_html=False)
-
-# Create a dataframe with resistance uncertainty values and corresponding model type and degree
-df_sR = pd.DataFrame({'Resistance Uncertainty': [result['s_R2'] for model_result in results_allModels for result in model_result['results']], 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
-
-for k in range(len(df_sR)):
-    df_sR.loc[k, 'Model Type'] = f"{df_sR.loc[k, 'Model Type']} {df_sR.loc[k, 'Degree']}" if df_sR.loc[k, 'Model Type'] == 'poly' else df_sR.loc[k, 'Model Type']
-
-# Create a violin plot for resistance uncertainty
-fig = px.violin(df_sR, x='Model Type', y='Resistance Uncertainty', color='Model Type')
-
-# Update layout
-fig.update_layout(xaxis_title='Model Type and Degree', yaxis_title='Resistance Uncertainty [Ω]')
-
-# Add the violin plot to the HTML report
-html_report += fig.to_html(full_html=False)
-
-# Create a dataframe with temperature uncertainty values and corresponding model type and degree
-df_sT = pd.DataFrame({'Temperature Uncertainty': [result['s_T2'] for model_result in results_allModels for result in model_result['results']], 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
-
-for k in range(len(df_sT)):
-    df_sT.loc[k, 'Model Type'] = f"{df_sT.loc[k, 'Model Type']} {df_sT.loc[k, 'Degree']}" if df_sT.loc[k, 'Model Type'] == 'poly' else df_sT.loc[k, 'Model Type']
-
-# Create a violin plot for temperature uncertainty
-fig = px.violin(df_sT, x='Model Type', y='Temperature Uncertainty', color='Model Type')
-
-# Update layout
-fig.update_layout(xaxis_title='Model Type and Degree', yaxis_title='Temperature Uncertainty [°C]')
-
-# Add the violin plot to the HTML report
-html_report += fig.to_html(full_html=False)
+# Add the dataframe as a table in the html file
+html_report += "<h2>Std values</h2>\n"
+html_report += df_stdvalues.to_html(index=False, classes='centered')
 
 # Save the HTML report to a file
 with open("report_Montecarlo.html", "w", encoding="utf-16") as file:
