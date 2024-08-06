@@ -6,18 +6,9 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 import tqdm
-
-file_path = "Dados/data.csv"
-df = pd.read_csv(file_path)
-
-models = [('poly',1),
-          ('poly',2),
-          ('poly',3),
-          ('poly',4),
-          ('exp',0)
-        ]
-
-N_montecarlo = 1000000 # Número de simulações de Monte Carlo 
+import functools
+from multiprocessing import Pool
+import os
 
 # Incertezas de medição:
 
@@ -40,47 +31,11 @@ s_R1 = s_dR # Incerteza da medição de resistência no início do teste
 s_Tamb1 = 0.1 # Incerteza da medição de temperatura no início do teste
 s_Tamb2 = 0.1 # Incerteza da medição de temperatura no final do teste
 
-x_og = df['Time'].values
-y_og = df['Resistance'].values
-
 # s_x = np.sqrt(s_t0**2 + s_dt**2)
 s_x = s_dt
 s_y = s_dR
 
-# Generate HTML report
-html_report = "<html>\n<head>\n<title>Analysis Report</title>\n</head>\n<body>\n"
-
-# Test Variables
-html_report += "<h2>Test Variables</h2>\n"
-html_report += "<ul>\n"
-html_report += f"<li>Resistance at the beginning of the test [Ω]: {R1}</li>\n"
-html_report += f"<li>Ambient temperature [°C]: {Tamb_1}</li>\n"
-html_report += f"<li>Coefficient of temperature: {alpha}</li>\n"
-html_report += f"<li>Uncertainty of initial time [s]: {s_t0}</li>\n"
-html_report += f"<li>Uncertainty of acquisition time [s]: {s_dt}</li>\n"
-html_report += f"<li>Uncertainty of resistance measurement [Ω]: {s_dR}</li>\n"
-html_report += f"<li>Uncertainty of ambient temperature measurement [°C]: {s_Tamb1}</li>\n"
-html_report += "</ul>\n\n"
-
-df_values = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
-df_stdvalues = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
-
-results = []
-results_allModels = []
-
-# Monte Carlo simulation for deviation of sample time
-montecarlo_matrix_x = np.random.normal(0, s_x, (len(x_og), N_montecarlo))
-montecarlo_matrix_x = x_og[:, np.newaxis] + montecarlo_matrix_x
-
-# Monte Carlo simulation for deviation of initial time
-montecarlo_t0 = np.random.normal(0, s_t0, (1, N_montecarlo))
-montecarlo_matrix_x = montecarlo_matrix_x + montecarlo_t0
-
-# Monte Carlo simulation for deviation of resistance measurement
-montecarlo_matrix_y = np.random.normal(0, s_y, (len(y_og), N_montecarlo))
-montecarlo_matrix_y = y_og[:, np.newaxis] + montecarlo_matrix_y
-
-for (k,model) in enumerate(tqdm.tqdm(models, desc = 'Model', position=0)):
+def process_montecarlo(xy, s_x, s_y, model):
     estimation_model = generate_estimation_models(type = model[0], degree=model[1])
 
     if model[0] == 'poly':
@@ -95,101 +50,178 @@ for (k,model) in enumerate(tqdm.tqdm(models, desc = 'Model', position=0)):
     elif model[0] == 'exp':
         initial_params = [17.472,2.06,-0.0197]
 
-    results_model = []
+    x = xy[0]
+    y = xy[1]
 
-    for i in tqdm.tqdm(range(N_montecarlo), desc = '  Monte Carlo', position=1, leave=False):
-        x = montecarlo_matrix_x[:,i]
-        y = montecarlo_matrix_y[:,i]
+    params, uncertainty, result = estimate_model_with_uncertainty(x, y, s_x, s_y, model=estimation_model, initial_params= initial_params,maxit = 1000000)
 
-        params, uncertainty, result = estimate_model_with_uncertainty(x, y, s_x, s_y, model=estimation_model, initial_params= initial_params,maxit = 1000000)
+    estimated_model = generate_estimation_models(type = model[0], degree=model[1], params=params)
+    
+    s_x0 = np.sqrt(s_t0**2 + s_dt**2)
+    uncertainty_model = generate_estimation_uncertainty_models(params=params, s_params=uncertainty, s_x = s_x0, type=model[0], degree=model[1])
 
-        estimated_model = generate_estimation_models(type = model[0], degree=model[1], params=params)
-        
-        s_x0 = np.sqrt(s_t0**2 + s_dt**2)
-        uncertainty_model = generate_estimation_uncertainty_models(params=params, s_params=uncertainty, s_x = s_x0, type=model[0], degree=model[1])
+    R2 = estimated_model(0)
+    s_R2 = uncertainty_model(0)
 
-        R2 = estimated_model(0)
-        s_R2 = uncertainty_model(0)
+    T2 = final_temperature(R1, R2, Tamb_1, alpha)
+    s_T2 = final_temperature_uncertainty(R1, R2, Tamb_1,alpha, s_R1, s_R2, s_Tamb1)
 
-        T2 = final_temperature(R1, R2, Tamb_1, alpha)
-        s_T2 = final_temperature_uncertainty(R1, R2, Tamb_1,alpha, s_R1, s_R2, s_Tamb1)
+    return {'params': params, 'uncertainty': uncertainty, 'result': result, 'R2': R2, 's_R2': s_R2, 'T2': T2, 's_T2': s_T2}
 
-        results_model.append({'params': params, 'uncertainty': uncertainty, 'result': result, 'R2': R2, 's_R2': s_R2, 'T2': T2, 's_T2': s_T2})
+if __name__ == '__main__':
+    file_path = "Dados/data.csv"
+    df = pd.read_csv(file_path)
 
-    results_model = {'type': model[0], 'degree':model[1], 'results': results_model}
-    results_allModels.append(results_model)
+    models = [('poly',1),
+            ('poly',2),
+            ('poly',3),
+            ('poly',4),
+            ('exp',0)
+            ]
 
-    x_plot = np.insert(x, 0, 0)
-    s_R= uncertainty_model(x_plot)
+    N_montecarlo = 200 # Número de simulações de Monte Carlo 
 
-    results.append(estimated_model(x_plot))
+    x_og = df['Time'].values
+    y_og = df['Resistance'].values
+
+    # Generate HTML report
+    html_report = "<html>\n<head>\n<title>Analysis Report</title>\n</head>\n<body>\n"
+
+    # Test Variables
+    html_report += "<h2>Test Variables</h2>\n"
+    html_report += "<ul>\n"
+    html_report += f"<li>Resistance at the beginning of the test [Ω]: {R1}</li>\n"
+    html_report += f"<li>Ambient temperature [°C]: {Tamb_1}</li>\n"
+    html_report += f"<li>Coefficient of temperature: {alpha}</li>\n"
+    html_report += f"<li>Uncertainty of initial time [s]: {s_t0}</li>\n"
+    html_report += f"<li>Uncertainty of acquisition time [s]: {s_dt}</li>\n"
+    html_report += f"<li>Uncertainty of resistance measurement [Ω]: {s_dR}</li>\n"
+    html_report += f"<li>Uncertainty of ambient temperature measurement [°C]: {s_Tamb1}</li>\n"
+    html_report += f"<li>Number of Monte Carlo simulations: {N_montecarlo}</li>\n"
+    html_report += "</ul>\n\n"
+
+    df_values = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
+    df_stdvalues = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
+
+    results = []
+    results_allModels = []
+
+    # Monte Carlo simulation for deviation of sample time
+    montecarlo_matrix_x = np.random.normal(0, s_x, (len(x_og), N_montecarlo))
+    montecarlo_matrix_x = x_og[:, np.newaxis] + montecarlo_matrix_x
+
+    # Monte Carlo simulation for deviation of initial time
+    montecarlo_t0 = np.random.normal(0, s_t0, (1, N_montecarlo))
+    montecarlo_matrix_x = montecarlo_matrix_x + montecarlo_t0
+
+    # Monte Carlo simulation for deviation of resistance measurement
+    montecarlo_matrix_y = np.random.normal(0, s_y, (len(y_og), N_montecarlo))
+    montecarlo_matrix_y = y_og[:, np.newaxis] + montecarlo_matrix_y
+
+    montecarlo_matrix_xy = list(zip(montecarlo_matrix_x.T, montecarlo_matrix_y.T))
+
+    n_jobs = os.cpu_count()
+
+    for (k,model) in enumerate(tqdm.tqdm(models, desc = 'Model', position=0)):
+        with Pool(n_jobs) as p:
+            results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
+
+        results_model = {'type': model[0], 'degree':model[1], 'results': results_model}
+        results_allModels.append(results_model)
+
 
         # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
-    mean_R2 = np.mean([result['R2'] for result in results_model['results']])
-    mean_s_R2 = np.mean([result['s_R2'] for result in results_model['results']])
-    mean_T2 = np.mean([result['T2'] for result in results_model['results']])
-    mean_s_T2 = np.mean([result['s_T2'] for result in results_model['results']])
-    sum_square = np.mean([result['result'].sum_square for result in results_model['results']])
+        mean_R2 = np.mean([result['R2'] for result in results_model['results']])
+        mean_s_R2 = np.mean([result['s_R2'] for result in results_model['results']])
+        mean_T2 = np.mean([result['T2'] for result in results_model['results']])
+        mean_s_T2 = np.mean([result['s_T2'] for result in results_model['results']])
+        sum_square = np.mean([result['result'].sum_square for result in results_model['results']])
 
-    # Add the mean values to the dataframe
-    df_values.loc[k] = [model[0], model[1], sum_square, mean_R2, mean_s_R2, mean_T2, mean_s_T2]
+        # Add the mean values to the dataframe
+        df_values.loc[k] = [model[0], model[1], sum_square, mean_R2, mean_s_R2, mean_T2, mean_s_T2]
 
-    # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
-    std_R2 = np.std([result['R2'] for result in results_model['results']])
-    std_s_R2 = np.std([result['s_R2'] for result in results_model['results']])
-    std_T2 = np.std([result['T2'] for result in results_model['results']])
-    std_s_T2 = np.std([result['s_T2'] for result in results_model['results']])
-    std_sum_square = np.std([result['result'].sum_square for result in results_model['results']])
+        # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
+        std_R2 = np.std([result['R2'] for result in results_model['results']])
+        std_s_R2 = np.std([result['s_R2'] for result in results_model['results']])
+        std_T2 = np.std([result['T2'] for result in results_model['results']])
+        std_s_T2 = np.std([result['s_T2'] for result in results_model['results']])
+        std_sum_square = np.std([result['result'].sum_square for result in results_model['results']])
 
-    # Add the standard deviation values to the dataframe
-    df_stdvalues.loc[k] = [model[0], model[1], std_sum_square, std_R2, std_s_R2, std_T2, std_s_T2]
+        # Add the standard deviation values to the dataframe
+        df_stdvalues.loc[k] = [model[0], model[1], std_sum_square, std_R2, std_s_R2, std_T2, std_s_T2]
 
-html_report += f"<h2>Model comparison</h2>\n"
+    html_report += f"<h2>Model comparison</h2>\n"
 
-# Extract T2 values for each model
-T2_values = []
-for model_result in results_allModels:
-    for result in model_result['results']:
-        T2_values.append(result['T2'])
+    # Extract T2 values for each model
+    T2_values = []
+    for model_result in results_allModels:
+        for result in model_result['results']:
+            T2_values.append(result['T2'])
 
-# Create a dataframe with T2 values and corresponding model type and degree
-df_T2 = pd.DataFrame({'T2': T2_values, 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
+    # Create a dataframe with T2 values and corresponding model type and degree
+    df_T2 = pd.DataFrame({'T2': T2_values, 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
 
-for k in range(len(df_T2)):
-    df_T2.loc[k, 'Model Type'] = f"{df_T2.loc[k, 'Model Type']} {df_T2.loc[k, 'Degree']}" if df_T2.loc[k, 'Model Type'] == 'poly' else df_T2.loc[k, 'Model Type']
+    for k in range(len(df_T2)):
+        df_T2.loc[k, 'Model Type'] = f"{df_T2.loc[k, 'Model Type']} {df_T2.loc[k, 'Degree']}" if df_T2.loc[k, 'Model Type'] == 'poly' else df_T2.loc[k, 'Model Type']
 
-# Create a violin plot
-fig = px.violin(df_T2, x='Model Type', y='T2', color='Model Type')
+    # Create a violin plot
+    fig = px.violin(df_T2, x='Model Type', y='T2', color='Model Type')
 
-# Update layout
-fig.update_layout(xaxis_title='Model Type and Degree', yaxis_title='Temperature [°C]')
+    # Update layout
+    fig.update_layout(xaxis_title='Model Type and Degree', yaxis_title='Temperature [°C]')
 
-# Add the violin plot to the HTML report
-html_report += fig.to_html(full_html=False)
+    # Add the violin plot to the HTML report
+    html_report += fig.to_html(full_html=False)
 
-# Create a dataframe with R2 values and corresponding model type and degree
-df_R2 = pd.DataFrame({'R2': [result['R2'] for model_result in results_allModels for result in model_result['results']], 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
+    # Create a dataframe with R2 values and corresponding model type and degree
+    df_R2 = pd.DataFrame({'R2': [result['R2'] for model_result in results_allModels for result in model_result['results']], 'Model Type': [model_result['type'] for model_result in results_allModels for _ in model_result['results']], 'Degree': [model_result['degree'] for model_result in results_allModels for _ in model_result['results']]})
 
-for k in range(len(df_R2)):
-    df_R2.loc[k, 'Model Type'] = f"{df_R2.loc[k, 'Model Type']} {df_R2.loc[k, 'Degree']}" if df_R2.loc[k, 'Model Type'] == 'poly' else df_R2.loc[k, 'Model Type']
+    for k in range(len(df_R2)):
+        df_R2.loc[k, 'Model Type'] = f"{df_R2.loc[k, 'Model Type']} {df_R2.loc[k, 'Degree']}" if df_R2.loc[k, 'Model Type'] == 'poly' else df_R2.loc[k, 'Model Type']
 
-# Create a violin plot
-fig = px.violin(df_R2, x='Model Type', y='R2', color='Model Type')
+    # Create a violin plot
+    fig = px.violin(df_R2, x='Model Type', y='R2', color='Model Type')
 
-# Update layout
-fig.update_layout(xaxis_title='Model Type and Degree', yaxis_title='Resistance [Ω]')
+    # Update layout
+    fig.update_layout(xaxis_title='Model Type and Degree', yaxis_title='Resistance [Ω]')
 
-# Add the violin plot to the HTML report
-html_report += fig.to_html(full_html=False)
+    # Add the violin plot to the HTML report
+    html_report += fig.to_html(full_html=False)
 
-# Add the dataframe as a table in the html file
-html_report += "<h2>Mean values</h2>\n"
-html_report += df_values.to_html(index=False, classes='centered')
+    # Add the dataframe as a table in the html file
+    html_report += "<h2>Mean and Std values</h2>\n"
+    html_report += "<table class='centered'>\n"
+    html_report += "<tr>\n"
+    html_report += "<th>Model Type</th>\n"
+    html_report += "<th>Degree</th>\n"
+    html_report += "<th>SSE [Ω²]</th>\n"
+    html_report += "<th>Resistance [Ω]</th>\n"
+    html_report += "<th>Resistance estimation uncertainty [Ω]</th>\n"
+    html_report += "<th>Temperature [°C]</th>\n"
+    html_report += "<th>Temperature uncertainty [°C]</th>\n"
+    html_report += "</tr>\n"
 
-# Add the dataframe as a table in the html file
-html_report += "<h2>Std values</h2>\n"
-html_report += df_stdvalues.to_html(index=False, classes='centered')
+    for i in range(len(df_values)):
+        html_report += "<tr>\n"
+        html_report += f"<td>{df_values.loc[i, 'Model Type']}</td>\n"
+        html_report += f"<td>{df_values.loc[i, 'Degree']}</td>\n"
+        html_report += f"<td>{df_values.loc[i, 'SSE']:.5g} ± {df_stdvalues.loc[i, 'SSE']:.5g}</td>\n"
+        html_report += f"<td>{df_values.loc[i, 'Resistance']:.5g} ± {df_stdvalues.loc[i, 'Resistance']:.5g}</td>\n"
+        html_report += f"<td>{df_values.loc[i, 'Uncertainty']:.5g} ± {df_stdvalues.loc[i, 'Uncertainty']:.5g}</td>\n"
+        html_report += f"<td>{df_values.loc[i, 'Temperature']:.5g} ± {df_stdvalues.loc[i, 'Temperature']:.5g}</td>\n"
+        html_report += f"<td>{df_values.loc[i, 'Temperature Uncertainty']:.5g} ± {df_stdvalues.loc[i, 'Temperature Uncertainty']:.5g}</td>\n"
+        html_report += "</tr>\n"
 
-# Save the HTML report to a file
-with open("report_Montecarlo.html", "w", encoding="utf-16") as file:
-    file.write(html_report)
+    html_report += "</table>\n"
+    html_report += "<style>\n"
+    html_report += "table {border-collapse: collapse; width: 100%;}\n"
+    html_report += "th, td {text-align: center; padding: 8px;}\n"
+    html_report += "tr:nth-child(even) {background-color: #f2f2f2;}\n"
+    html_report += "th {background-color: #4CAF50; color: white;}\n"
+    html_report += "</style>\n"
+
+    html_report += "</table>\n"
+
+    # Save the HTML report to a file
+    with open("report_Montecarlo.html", "w", encoding="utf-16") as file:
+        file.write(html_report)
