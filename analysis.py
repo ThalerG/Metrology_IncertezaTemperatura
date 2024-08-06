@@ -38,7 +38,8 @@ s_Tamb2 = 0.1 # Incerteza da medição de temperatura no final do teste
 x = df['Time'].values
 y = df['Resistance'].values
 
-s_x = np.sqrt(s_t0**2 + s_dt**2)
+# s_x = np.sqrt(s_t0**2 + s_dt**2)
+s_x = s_dt
 s_y = s_dR
 
 # Generate HTML report
@@ -64,14 +65,23 @@ for (k,model) in enumerate(models):
     estimation_model = generate_estimation_models(type = model[0], degree=model[1])
 
     if model[0] == 'poly':
-        initial_params = [1]*(model[1]+1)
+        if model[1] == 1:
+            initial_params = [19.425,0.0266]
+        elif model[1] == 2:
+            initial_params = [19.52,-0.0381,0.00026]
+        elif model[1] == 3:
+            initial_params = [19.534,-0.041,0.000413,-2.31e-6]
+        else:
+            initial_params = [1]*(model[1]+1)
     elif model[0] == 'exp':
-        initial_params = [18,2,-0.01]
+        initial_params = [17.472,2.06,-0.0197]
 
     params, uncertainty, result = estimate_model_with_uncertainty(x, y, s_x, s_y, model=estimation_model, initial_params= initial_params,maxit = 10000)
 
     estimated_model = generate_estimation_models(type = model[0], degree=model[1], params=params)
-    uncertainty_model = generate_estimation_uncertainty_models(params=params, s_params=uncertainty, s_x = s_x, type=model[0], degree=model[1])
+    
+    s_x0 = np.sqrt(s_t0**2 + s_dt**2)
+    uncertainty_model = generate_estimation_uncertainty_models(params=params, s_params=uncertainty, s_x = s_x0, type=model[0], degree=model[1])
 
     R2 = estimated_model(0)
     s_R2 = uncertainty_model(0)
