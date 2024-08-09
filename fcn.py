@@ -65,40 +65,91 @@ def estimate_model_with_uncertainty(x: Union[np.ndarray, List[float]],
     return fitted_params, uncertainty, result
 
 
-def final_temperature(R1:float, R2:float, T1,alpha:float):
+def final_temperature(R1:float, R2:float, T_amb1:float, T_amb2:float ,k:float) -> float:
     """
-    Calculates the temperature T2 based on the resistance values R2 and R1, the temperature coefficient alpha, and the ambient temperature Tamb_1.
+    Calculates the final temperature T2 based on the resistance values R2 and R1, the ambient temperatures T_amb1 and T_amb2, and the reciprocal of the temperature coefficient k.
     Parameters:
     - R1 (float): Initial resistance.
     - R2 (float): Final resistance.
-    - T1 (float): Temperature at the beginning of the test (ambient temperature).
-    - alpha (float): Temperature coefficient.
-    Returns:
-    - T2 (float): Calculated temperature T2.
-    """
-    return (R2 - R1) / (R1 * alpha) + T1
+    - T_amb1 (float): Ambient temperature at the beginning of the test.
+    - T_amb2 (float): Ambient temperature at the end of the test.
+    - k (float): Reciprocal of the temperature coefficient at 0°C.
 
-def final_temperature_uncertainty(R1:float, R2:float, T1:float, alpha:float, s_R1:float, s_R2:float, s_T1:float):
+    - T2 (float): Calculated final temperature T2.
+    """
+    return (R2 - R1) * (k + T_amb1) / (R1) - (T_amb2 - T_amb1) + T_amb1
+
+def delta_temperature(R1:float, R2:float, T_amb1:float, T_amb2:float ,k:float) -> float:
+    """
+    Calculates the final temperature T2 based on the resistance values R2 and R1, the ambient temperatures T_amb1 and T_amb2, and the reciprocal of the temperature coefficient k.
+    Parameters:
+    - R1 (float): Initial resistance.
+    - R2 (float): Final resistance.
+    - T_amb1 (float): Ambient temperature at the beginning of the test.
+    - T_amb2 (float): Ambient temperature at the end of the test.
+    - k (float): Reciprocal of the temperature coefficient at 0°C.
+
+    - T2 (float): Calculated final temperature T2.
+    """
+    return (R2 - R1) * (k + T_amb1) / (R1) - (T_amb2 - T_amb1)
+
+def final_temperature_uncertainty(R1:float, R2:float, T_amb1:float, T_amb2:float, k:float, s_R1:float, s_R2:float, s_T_amb1:float, s_T_amb2:float) -> float:
     """
     Calculates the combined uncertainty of temperature (s_T2) based on the given parameters.
+    
     Parameters:
-    R1 (float): Initial resistance value.
-    R2 (float): Final resistance value.
-    T1 (float): Ambient temperature.
-    alpha (float): Coefficient of resistance-temperature relationship.
-    s_R1 (float): Uncertainty of initial resistance.
-    s_R2 (float): Uncertainty of final resistance.
-    s_T1 (float): Uncertainty of ambient temperature.
+    - R1 (float): Initial resistance value.
+    - R2 (float): Final resistance value.
+    - T_amb1 (float): Ambient temperature at the beginning of the test.
+    - T_amb2 (float): Ambient temperature at the end of the test.
+    - k (float): Reciprocal of the temperature coefficient at 0°C.
+    - s_R1 (float): Uncertainty of initial resistance.
+    - s_R2 (float): Uncertainty of final resistance.
+    - s_T_amb1 (float): Uncertainty of initial ambient temperature.
+    - s_T_amb2 (float): Uncertainty of final ambient temperature.
+    
     Returns:
-    s_T2 (float): Combined uncertainty of temperature.
+    - s_T2 (float): Combined uncertainty of temperature.
+    
     Notes:
     - The combined uncertainty is calculated as the square root of the sum of squares of individual uncertainties.
-    - The individual uncertainty is derived from the partial derivative of the temperature equation with respect to each parameter. The original equation is:
-    T2 = (R2 - R1) / (R1 * alpha) + T1
+    - The individual uncertainties are derived from the partial derivatives of the temperature equation with respect to each parameter. The original equation is:
+        T2 = (R2 - R1) * (k + T_amb1) / R1 - (T_amb2 - T_amb1) + T_amb1
     """
-    s_T2 = [1*s_T1, # Uncertainty of ambient temperature
-            -R2/(alpha*(R1**2))*s_R1, # Uncertainty of initial resistance
-            1/(alpha*R1)*s_R2] # Uncertainty of final resistance
+    s_T2 = [((R2-R1)/R1 + 2)*s_T_amb1, # Uncertainty of initial ambient temperature
+            -1*s_T_amb2, # Uncertainty of final ambient temperature
+            -R2*(k+T_amb1)/(R1**2)*s_R1, # Uncertainty of initial resistance
+            (k+T_amb1)/R1*s_R2] # Uncertainty of final resistance
+    
+    return np.linalg.norm(s_T2)
+
+def delta_temperature_uncertainty(R1:float, R2:float, T_amb1:float, T_amb2:float, k:float, s_R1:float, s_R2:float, s_T_amb1:float, s_T_amb2:float) -> float:
+    """
+    Calculates the combined uncertainty of temperature (s_T2) based on the given parameters.
+    
+    Parameters:
+    - R1 (float): Initial resistance value.
+    - R2 (float): Final resistance value.
+    - T_amb1 (float): Ambient temperature at the beginning of the test.
+    - T_amb2 (float): Ambient temperature at the end of the test.
+    - k (float): Reciprocal of the temperature coefficient at 0°C.
+    - s_R1 (float): Uncertainty of initial resistance.
+    - s_R2 (float): Uncertainty of final resistance.
+    - s_T_amb1 (float): Uncertainty of initial ambient temperature.
+    - s_T_amb2 (float): Uncertainty of final ambient temperature.
+    
+    Returns:
+    - s_T2 (float): Combined uncertainty of temperature.
+    
+    Notes:
+    - The combined uncertainty is calculated as the square root of the sum of squares of individual uncertainties.
+    - The individual uncertainties are derived from the partial derivatives of the temperature equation with respect to each parameter. The original equation is:
+        T2 = (R2 - R1) * (k + T_amb1) / R1 - (T_amb2 - T_amb1) + T_amb1
+    """
+    s_T2 = [((R2-R1)/R1 + 1)*s_T_amb1, # Uncertainty of initial ambient temperature
+            -1*s_T_amb2, # Uncertainty of final ambient temperature
+            -R2*(k+T_amb1)/(R1**2)*s_R1, # Uncertainty of initial resistance
+            (k+T_amb1)/R1*s_R2] # Uncertainty of final resistance
     
     return np.linalg.norm(s_T2)
 
