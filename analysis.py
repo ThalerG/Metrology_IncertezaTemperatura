@@ -18,9 +18,9 @@ models = [('poly',1),
 
 s_t0 = 1 # Incerteza do tempo inicial
 
-s_dt = 0.1 # Incerteza do tempo de aquisição
+s_dt = 0.001 # Incerteza do tempo de aquisição
 
-s_dR = 1 # Incerteza da medição de resistência
+s_dR = 0.001 # Incerteza da medição de resistência
 
 # Condições de teste
 
@@ -47,14 +47,28 @@ html_report = "<html>\n<head>\n<title>Analysis Report</title>\n</head>\n<body>\n
 
 # Test Variables
 html_report += "<h2>Test Variables</h2>\n"
-html_report += "<ul>\n"
-html_report += f"<li>Resistance at the beginning of the test [Ω]: {R1}</li>\n"
-html_report += f"<li>Ambient temperature [°C]: {Tamb_1}</li>\n"
-html_report += f"<li>Coefficient of temperature: {alpha}</li>\n"
-html_report += f"<li>Uncertainty of initial time [s]: {s_t0}</li>\n"
-html_report += f"<li>Uncertainty of acquisition time [s]: {s_dt}</li>\n"
-html_report += f"<li>Uncertainty of resistance measurement [Ω]: {s_dR}</li>\n"
-html_report += f"<li>Uncertainty of ambient temperature measurement [°C]: {s_Tamb1}</li>\n"
+html_report += "<table>\n"
+html_report += "<tr>\n"
+html_report += "<th>Variable</th>\n"
+html_report += "<th>Value</th>\n"
+html_report += "<th>Unit</th>\n"
+html_report += "<th>Uncertainty</th>\n"
+html_report += "<th>Symbol</th>\n"  # Add a column for the symbol
+html_report += "</tr>\n"
+html_report += f"<tr><td>Resistance at the beginning of the test</td><td>{R1}</td><td>Ω</td><td>{s_dR}</td><td>R<sub>1</sub></td></tr>\n"
+html_report += f"<tr><td>Resistance at the end of the test</td><td>Monte Carlo mean</td><td>Ω</td><td>Monte Carlo deviation</td><td>R<sub>2</sub></td></tr>\n"
+html_report += f"<tr><td>Ambient temperature at the beginning of the test</td><td>{Tamb_1}</td><td>°C</td><td>{s_Tamb1}</td><td>T<sub>amb,1</sub></td></tr>\n"
+html_report += f"<tr><td>Ambient temperature at the end of the test</td><td>{Tamb_2}</td><td>°C</td><td>{s_Tamb2}</td><td>T<sub>amb,2</sub></td></tr>\n"
+html_report += f"<tr><td>Reciprocal of the coefficient of temperature</td><td>{k}</td><td>°C</td><td>-</td><td>k</td></tr>\n"
+html_report += f"<tr><td>Test temperature difference</td><td> Calculated </td><td>°C</td><td> Calculated </td><td>ΔT</sub></td></tr>\n"
+html_report += f"<tr><td>Winding temperature at the end of the test</td><td> Calculated </td><td>°C</td><td> Calculated </td><td>T<sub>2</sub></td></tr>\n"
+html_report += "</table>\n"
+
+html_report += "<p>Other variables:</p>\n"
+
+html_report += f"<li><td>Uncertainty of initial time μ<sub>t<sub>0</sub></sub> (s): {s_t0}</li>\n"
+html_report += f"<li><td>Uncertainty of acquisition time μ<sub>dt</sub> (s): {s_dt}</li>\n"
+html_report += f"<li><td>Uncertainty of resistance measurement μ<sub>dR</sub> (Ω): {s_dR}</li>\n"
 html_report += "</ul>\n\n"
 
 df_values = pd.DataFrame(columns=['Model Type', 'Degree', 'SSE', 'Resistance', 'Uncertainty', 'Temperature', 'Temperature Uncertainty'])
@@ -86,8 +100,8 @@ for (k,model) in enumerate(models):
     R2 = estimated_model(0)
     s_R2 = uncertainty_model(0)
 
-    T2 = final_temperature(R1, R2, Tamb_1, alpha)
-    s_T2 = final_temperature_uncertainty(R1, R2, Tamb_1,alpha, s_R1, s_R2, s_Tamb1)
+    T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
+    s_T2 = final_temperature_uncertainty(R1, R2, Tamb_1, Tamb_2, k, s_R1, s_R2, s_Tamb1, s_Tamb2)
 
     x_plot = np.insert(x, 0, 0)
     s_R= uncertainty_model(x_plot)
