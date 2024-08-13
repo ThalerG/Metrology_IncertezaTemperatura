@@ -49,15 +49,15 @@ an0_t1 = 4
 
 ###### Análise 1: Distância entre pontos x tempo inicial ######
 
-an1_t1 = [2,4,6,8,10]
-an1_dT = [2,4,6,8,10]
-an1_Npoints = 4
+an1_t1 = [4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]
+an1_dT = [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36]
+an1_Npoints = 3
 
 ###### Análise 2: Tempo inicial x incerteza t0 ######
 
-an2_Npoints = 4
+an2_Npoints = 3
 an2_dt = 8
-an2_t1 = [2, 4, 6, 8, 10, 12, 14, 16]
+an2_t1 = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
 an2_s_t0 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]
 
 def process_montecarlo(xy, s_x, s_y, model):
