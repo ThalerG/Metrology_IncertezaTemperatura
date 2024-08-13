@@ -41,13 +41,13 @@ s_y = s_dR
 
 n_analyses = 3
 
-###### Análise 0: Nº de pontos x Distância entre pontos ######
+###### Análise 0: Nº de pontos x Tempo entre pontos ######
 
 an0_dT = [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]
-an0_Npoints = [2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+an0_Npoints = [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
 an0_t1 = 4
 
-###### Análise 1: Distância entre pontos x tempo inicial ######
+###### Análise 1: Tempo entre pontos x tempo inicial ######
 
 an1_t1 = [4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]
 an1_dT = [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36]
@@ -58,7 +58,21 @@ an1_Npoints = 3
 an2_Npoints = 3
 an2_dt = 8
 an2_t1 = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
-an2_s_t0 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]
+an2_s_t0 = [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1]
+
+###### Análise 3: Nº de pontos x incerteza t0 ######
+
+an3_Npoints = [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+an3_dt = 8
+an3_t1 = 4
+an3_s_t0 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]
+
+###### Análise 4: Tempo entre pontos x incerteza t0 ######
+
+an4_Npoints = 3
+an4_dt = [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36]
+an4_t1 = 4
+an4_s_t0 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]
 
 def process_montecarlo(xy, s_x, s_y, model):
     estimation_model = generate_estimation_models(type = model[0], degree=model[1])
@@ -189,14 +203,17 @@ if __name__ == '__main__':
     n_jobs = os.cpu_count()
 
     for an in tqdm.tqdm(range(n_analyses), desc = 'Model', position=0):
-        if an == 0: ###### Análise 0: Nº de pontos x Distância entre pontos ######
+        if an == 0: ###### Análise 0: Nº de pontos x Tempo entre pontos ######
+            html_report += f"<h3>Analysis 0: Number of measurements x Time between measurements</h3>\n"
+            html_report += f"<p>Initial time: {an0_t1} s</p>\n"
+            html_report += f"<p>Uncertainty of initial time: {s_t0} s</p>\n"
+
             conditions = product(an0_dT, an0_Npoints)
             conditions = [condition for condition in conditions if condition[0]*condition[1] <= x_og[-1]]
 
             df_values = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
-            html_report += f"<h3>Analysis 0: Number of measurements x Time between measurements</h3>\n"
-
+            
             for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
 
                 dT = condition[0]
@@ -255,19 +272,23 @@ if __name__ == '__main__':
                         z_s_r2[j, i] = np.nan
                         z_s_t2[j, i] = np.nan
 
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=3, 
-                                specs=[[{"type": "surface"},{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=['SSE [Ω²]', 'Resistance [Ω]', 'Temperature [°C]'])
+            # SSE plot
+            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
+            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='dT [s]', yaxis_title='N_points', zaxis_title='Value'))
+            html_report += fig.to_html(full_html=False)
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_sse, name='SSE'), row=1, col=1)
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+
             fig.update_scenes(xaxis_title='dT [s]', 
                               yaxis_title='N_points', 
                               zaxis_title='Value')
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=2)
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=3)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -287,7 +308,11 @@ if __name__ == '__main__':
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
             
-        elif an == 1: ###### Análise 1: Distância entre pontos x tempo inicial ######
+        elif an == 1: ###### Análise 1: Tempo entre pontos x tempo inicial ######
+            html_report += f"<h3>Analysis 1: Time between measurements x Initial time</h3>\n"
+            html_report += f"<p>Number of measurements: {an1_Npoints}</p>\n"
+            html_report += f"<p>Uncertainty of initial time: {s_t0} s</p>\n"
+
             conditions = product(an1_t1, an1_dT)
             conditions = [condition for condition in conditions if condition[0] + condition[1]*(an1_Npoints-1) <= x_og[-1]]
 
@@ -295,8 +320,7 @@ if __name__ == '__main__':
             df_stdvalues = pd.DataFrame(columns=['t1','dT','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
 
             for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
-                html_report += f"<h3>Analysis 1: Time between measurements x Initial time</h3>\n"
-
+                
                 t1 = condition[0]
                 dT = condition[1]
 
@@ -353,19 +377,23 @@ if __name__ == '__main__':
                         z_s_r2[j, i] = np.nan
                         z_s_t2[j, i] = np.nan
 
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=3, 
-                                specs=[[{"type": "surface"},{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=['SSE [Ω²]', 'Resistance [Ω]', 'Temperature [°C]'])
+            # SSE plot
+            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
+            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='dT [s]', yaxis_title='t1 [s]', zaxis_title='Value'))
+            html_report += fig.to_html(full_html=False)
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_sse, name='SSE'), row=1, col=1)
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+
             fig.update_scenes(xaxis_title='dT [s]', 
                               yaxis_title='t1 [s]', 
                               zaxis_title='Value')
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=2)
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=3)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -385,6 +413,10 @@ if __name__ == '__main__':
             html_report += fig.to_html(full_html=False)
 
         elif an == 2: ###### Análise 2: Tempo inicial x incerteza t0 ######
+            html_report += f"<h3>Analysis 2: Initial time x Uncertainty of initial time</h3>\n"
+            html_report += f"<p>Time between measurements: {an2_dt} s</p>\n"
+            html_report += f"<p>Number of measurements: {an2_Npoints}</p>\n"
+
             conditions = product(an2_t1, an2_s_t0)
             conditions = [condition for condition in conditions if condition[0]+an2_dt*(an2_Npoints -1) <= x_og[-1]]
 
@@ -392,7 +424,6 @@ if __name__ == '__main__':
             df_stdvalues = pd.DataFrame(columns=['t1','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
 
             for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
-                html_report += f"<h3>Analysis 2: Initial time x Uncertainty of initial time</h3>\n"
 
                 t1 = condition[0]
                 s_t0 = condition[1]
@@ -450,19 +481,24 @@ if __name__ == '__main__':
                         z_s_r2[j, i] = np.nan
                         z_s_t2[j, i] = np.nan
 
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=3, 
-                                specs=[[{"type": "surface"},{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=['SSE [Ω²]', 'Resistance [Ω]', 'Temperature [°C]'])
+            # SSE plot
+            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
+            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='t1 [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
+            html_report += fig.to_html(full_html=False)
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_sse, name='SSE'), row=1, col=1)
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+
             fig.update_scenes(xaxis_title='t1 [s]', 
                               yaxis_title='s_t0 [s]', 
-                              zaxis_title='Value')
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=2)
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=3)
+                              zaxis_title='Value',
+                              yaxis_type='log')
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -475,12 +511,224 @@ if __name__ == '__main__':
             fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
             fig.update_scenes(xaxis_title='t1 [s]', 
                               yaxis_title='s_t0 [s]', 
-                              zaxis_title='Value')
+                              zaxis_title='Value',
+                              yaxis_type='log')
+            
             fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
 
+        elif an == 3: ###### Analysis 3: Number of points x Initial time uncertainty ######
+            html_report += f"<h3>Analysis 3: Number of points x Uncertainty of initial time</h3>\n"
+            html_report += f"<p>Time between measurements: {an3_dt} s</p>\n"
+            html_report += f"<p>Initial time: {an3_t1} s</p>\n"
+
+            conditions = product(an3_Npoints, an3_s_t0)
+            conditions = [condition for condition in conditions if condition[0]*an3_dt <= x_og[-1]]
+
+            df_values = pd.DataFrame(columns=['Npoints','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
+            df_stdvalues = pd.DataFrame(columns=['Npoints','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
+
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
+
+                Npoints = condition[0]
+                s_t0 = condition[1]
+
+                montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = an3_t1, dt = an3_dt, n_x = Npoints, N_montecarlo = N_montecarlo)
+
+                with Pool(n_jobs) as p:
+                    results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
+
+                # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
+                mean_R2 = np.mean([result['R2'] for result in results_model])
+                mean_s_R2 = np.mean([result['s_R2'] for result in results_model])
+                sum_square = np.mean([result['result'].sum_square for result in results_model])
+
+                DT = delta_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
+                T2 = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
+
+                # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
+                std_R2 = np.std([result['R2'] for result in results_model])
+                std_s_R2 = np.std([result['s_R2'] for result in results_model])
+                std_sum_square = np.std([result['result'].sum_square for result in results_model])
+
+                s_DT = delta_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
+                s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
+
+                # Add the mean values to the dataframe
+                df_values.loc[ind] = [Npoints, s_t0, sum_square, mean_R2, mean_s_R2, DT, T2]
+
+                # Add the standard deviation
+                df_stdvalues.loc[ind] = [Npoints, s_t0, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
+
+            x = df_values['Npoints'].unique()
+            y = df_values['s_t0'].unique()
+
+            z_sse = np.empty((len(y), len(x)))
+            z_r2 = np.empty((len(y), len(x)))
+            z_t2 = np.empty((len(y), len(x)))
+            z_s_r2 = np.empty((len(y), len(x)))
+            z_s_t2 = np.empty((len(y), len(x)))
+
+            for i, Npoints in enumerate(x):
+                for j, s_t0 in enumerate(y):
+                    row = df_values[(df_values['Npoints'] == Npoints) & (df_values['s_t0'] == s_t0)]
+                    row_s = df_stdvalues[(df_stdvalues['Npoints'] == Npoints) & (df_stdvalues['s_t0'] == s_t0)]
+                    if len(row) > 0:
+                        z_sse[j, i] = row['SSE'].values[0]
+                        z_r2[j, i] = row['Resistance'].values[0]
+                        z_t2[j, i] = row['Temperature'].values[0]
+                        z_s_r2[j, i] = row_s['Resistance'].values[0]
+                        z_s_t2[j, i] = row_s['Temperature'].values[0]
+                    else:
+                        z_sse[j, i] = np.nan
+                        z_r2[j, i] = np.nan
+                        z_t2[j, i] = np.nan
+                        z_s_r2[j, i] = np.nan
+                        z_s_t2[j, i] = np.nan
+
+            # SSE plot
+            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
+            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='Npoints', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
+            html_report += fig.to_html(full_html=False)
+
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+
+            fig.update_scenes(xaxis_title='Npoints', 
+                              yaxis_title='s_t0 [s]', 
+                              zaxis_title='Value',
+                              yaxis_type='log')
+
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
+
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
+            fig.update_scenes(xaxis_title='Npoints', 
+                              yaxis_title='s_t0 [s]', 
+                              zaxis_title='Value',
+                              yaxis_type='log')
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
+
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
+ 
+        elif an == 4: ###### Analysis 4: Time between points x Uncertainty of initial time ######
+            html_report += f"<h3>Analysis 4: Time between points x Uncertainty of initial time</h3>\n"
+            html_report += f"<p>Number of points: {an4_Npoints}</p>\n"
+            html_report += f"<p>Initial time: {an4_t1} s</p>\n"
+
+            conditions = product(an4_dt, an4_s_t0)
+            conditions = [condition for condition in conditions if condition[0]*an4_Npoints <= x_og[-1]]
+
+            df_values = pd.DataFrame(columns=['dt','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
+            df_stdvalues = pd.DataFrame(columns=['dt','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
+
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
+
+                dt = condition[0]
+                s_t0 = condition[1]
+
+                montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = an4_t1, dt = dt, n_x = an4_Npoints, N_montecarlo = N_montecarlo)
+
+                with Pool(n_jobs) as p:
+                    results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
+
+                # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
+                mean_R2 = np.mean([result['R2'] for result in results_model])
+                mean_s_R2 = np.mean([result['s_R2'] for result in results_model])
+                sum_square = np.mean([result['result'].sum_square for result in results_model])
+
+                DT = delta_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
+                T2 = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
+
+                # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
+                std_R2 = np.std([result['R2'] for result in results_model])
+                std_s_R2 = np.std([result['s_R2'] for result in results_model])
+                std_sum_square = np.std([result['result'].sum_square for result in results_model])
+
+                s_DT = delta_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
+                s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
+
+                # Add the mean values to the dataframe
+                df_values.loc[ind] = [dt, s_t0, sum_square, mean_R2, mean_s_R2, DT, T2]
+
+                # Add the standard deviation
+                df_stdvalues.loc[ind] = [dt, s_t0, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
+
+            x = df_values['dt'].unique()
+            y = df_values['s_t0'].unique()
+
+            z_sse = np.empty((len(y), len(x)))
+            z_r2 = np.empty((len(y), len(x)))
+            z_t2 = np.empty((len(y), len(x)))
+            z_s_r2 = np.empty((len(y), len(x)))
+            z_s_t2 = np.empty((len(y), len(x)))
+
+            for i, dt in enumerate(x):
+                for j, s_t0 in enumerate(y):
+                    row = df_values[(df_values['dt'] == dt) & (df_values['s_t0'] == s_t0)]
+                    row_s = df_stdvalues[(df_stdvalues['dt'] == dt) & (df_stdvalues['s_t0'] == s_t0)]
+                    if len(row) > 0:
+                        z_t2[j, i] = row['Temperature'].values[0]
+                        z_s_r2[j, i] = row_s['Resistance'].values[0]
+                        z_s_t2[j, i] = row_s['Temperature'].values[0]
+                    else:
+                        z_sse[j, i] = np.nan
+                        z_r2[j, i] = np.nan
+                        z_t2[j, i] = np.nan
+                        z_s_r2[j, i] = np.nan
+                        z_s_t2[j, i] = np.nan
+
+            # SSE plot
+            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
+            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='dt [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
+            html_report += fig.to_html(full_html=False)
+
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+
+            fig.update_scenes(xaxis_title='dt [s]', 
+                              yaxis_title='s_t0 [s]', 
+                              zaxis_title='Value',
+                              yaxis_type='log')
+
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
+
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
+            fig.update_scenes(xaxis_title='dt [s]', 
+                              yaxis_title='s_t0 [s]', 
+                              zaxis_title='Value',
+                              yaxis_type='log')
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
+
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
+        
     # Save the HTML report to a file
     with open("report_Map_Montecarlo.html", "w", encoding="utf-16") as file:
         file.write(html_report)
