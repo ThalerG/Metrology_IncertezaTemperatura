@@ -188,15 +188,15 @@ if __name__ == '__main__':
 
     n_jobs = os.cpu_count()
 
-    for k in tqdm.tqdm(range(n_analyses), desc = 'Model', position=0):
-        if k == 0: ###### Análise 0: Nº de pontos x Distância entre pontos ######
+    for an in tqdm.tqdm(range(n_analyses), desc = 'Model', position=0):
+        if an == 0: ###### Análise 0: Nº de pontos x Distância entre pontos ######
             conditions = product(an0_dT, an0_Npoints)
             conditions = [condition for condition in conditions if condition[0]*condition[1] <= x_og[-1]]
 
             df_values = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
 
-            for condition in tqdm.tqdm(conditions, desc = 'Condition', position=1):
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
 
                 html_report += f"<h3>Analysis 0: Number of measurements x Time between measurements</h3>\n"
 
@@ -225,38 +225,38 @@ if __name__ == '__main__':
                 s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
 
                 # Add the mean values to the dataframe
-                df_values.loc[k] = [dT, Npoints, sum_square, mean_R2, mean_s_R2, DT, T2]
+                df_values.loc[ind] = [dT, Npoints, sum_square, mean_R2, mean_s_R2, DT, T2]
 
                 # Add the standard deviation values to the dataframe
-                df_stdvalues.loc[k] = [dT, Npoints, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
+                df_stdvalues.loc[ind] = [dT, Npoints, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
 
-                # Create the figure object
-                fig = make_subplots(rows=1, cols=3, subplot_titles=("SSE", "R2", "T2"))
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=3, subplot_titles=("SSE", "R2", "T2"))
 
-                fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['N_points'], z=df_values['SSE'], name='SSE'), row=1, col=1)
-                fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['N_points'], z=df_values['Resistance'], name='R2'), row=1, col=2)
-                fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['N_points'], z=df_values['Temperature'], name='T2'), row=1, col=3)
+            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['N_points'], z=df_values['SSE'], name='SSE'), row=1, col=1)
+            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['N_points'], z=df_values['Resistance'], name='R2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['N_points'], z=df_values['Temperature'], name='T2'), row=1, col=3)
 
-                # Add the plot to the HTML report
-                html_report += fig.to_html(full_html=False)
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
 
-                # Create the figure object
-                fig = make_subplots(rows=1, cols=2, subplot_titles=("R2 uncertainty", "T2 uncertainty"))
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, subplot_titles=("R2 uncertainty", "T2 uncertainty"))
 
-                fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['N_points'], z=df_stdvalues['Resistance'], name='s_R2'), row=1, col=1)
-                fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['N_points'], z=df_stdvalues['Temperature'], name='s_T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['N_points'], z=df_stdvalues['Resistance'], name='s_R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['N_points'], z=df_stdvalues['Temperature'], name='s_T2'), row=1, col=2)
 
-                # Add the plot to the HTML report
-                html_report += fig.to_html(full_html=False)
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
             
-        elif k == 1: ###### Análise 1: Distância entre pontos x tempo inicial ######
+        elif an == 1: ###### Análise 1: Distância entre pontos x tempo inicial ######
             conditions = product(an1_t1, an1_dT)
             conditions = [condition for condition in conditions if condition[0] + condition[1]*(an1_Npoints-1) <= x_og[-1]]
 
             df_values = pd.DataFrame(columns=['t1','dT','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['t1','dT','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
 
-            for condition in tqdm.tqdm(conditions, desc = 'Condition', position=1):
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
                 html_report += f"<h3>Analysis 1: Time between measurements x Initial time</h3>\n"
 
                 t1 = condition[0]
@@ -284,38 +284,38 @@ if __name__ == '__main__':
                 s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
 
                 # Add the mean values to the dataframe
-                df_values.loc[k] = [t1, dT, sum_square, mean_R2, mean_s_R2, DT, T2]
+                df_values.loc[ind] = [t1, dT, sum_square, mean_R2, mean_s_R2, DT, T2]
 
                 # Add the standard deviation
-                df_stdvalues.loc[k] = [t1, dT, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
+                df_stdvalues.loc[ind] = [t1, dT, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
 
-                # Create the figure object
-                fig = make_subplots(rows=1, cols=3, subplot_titles=("SSE", "R2", "T2"))
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=3, subplot_titles=("SSE", "R2", "T2"))
 
-                fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['t1'], z=df_values['SSE'], name='SSE'), row=1, col=1)
-                fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['t1'], z=df_values['Resistance'], name='R2'), row=1, col=2)
-                fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['t1'], z=df_values['Temperature'], name='T2'), row=1, col=3)
+            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['t1'], z=df_values['SSE'], name='SSE'), row=1, col=1)
+            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['t1'], z=df_values['Resistance'], name='R2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['t1'], z=df_values['Temperature'], name='T2'), row=1, col=3)
 
-                # Add the plot to the HTML report
-                html_report += fig.to_html(full_html=False)
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
 
-                # Create the figure object
-                fig = make_subplots(rows=1, cols=2, subplot_titles=("R2 uncertainty", "T2 uncertainty"))
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, subplot_titles=("R2 uncertainty", "T2 uncertainty"))
 
-                fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['t1'], z=df_stdvalues['Resistance'], name='s_R2'), row=1, col=1)
-                fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['t1'], z=df_stdvalues['Temperature'], name='s_T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['t1'], z=df_stdvalues['Resistance'], name='s_R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['t1'], z=df_stdvalues['Temperature'], name='s_T2'), row=1, col=2)
 
-                # Add the plot to the HTML report
-                html_report += fig.to_html(full_html=False)
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
 
-        elif k == 2: ###### Análise 2: Tempo inicial x incerteza t0 ######
+        elif an == 2: ###### Análise 2: Tempo inicial x incerteza t0 ######
             conditions = product(an2_t1, an2_s_t0)
             conditions = [condition for condition in conditions if condition[0]+an2_dt*(an2_Npoints -1) <= x_og[-1]]
 
             df_values = pd.DataFrame(columns=['t1','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['t1','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
 
-            for condition in tqdm.tqdm(conditions, desc = 'Condition', position=1):
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
                 html_report += f"<h3>Analysis 2: Initial time x Uncertainty of initial time</h3>\n"
 
                 t1 = condition[0]
@@ -343,29 +343,29 @@ if __name__ == '__main__':
                 s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
 
                 # Add the mean values to the dataframe
-                df_values.loc[k] = [t1, s_t0, sum_square, mean_R2, mean_s_R2, DT, T2]
+                df_values.loc[ind] = [t1, s_t0, sum_square, mean_R2, mean_s_R2, DT, T2]
 
                 # Add the standard deviation
-                df_stdvalues.loc[k] = [t1, s_t0, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
+                df_stdvalues.loc[ind] = [t1, s_t0, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
 
-                # Create the figure object
-                fig = make_subplots(rows=1, cols=3, subplot_titles=("SSE", "R2", "T2"))
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=3, subplot_titles=("SSE", "R2", "T2"))
 
-                fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['s_t0'], z=df_values['SSE'], name='SSE'), row=1, col=1)
-                fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['s_t0'], z=df_values['Resistance'], name='R2'), row=1, col=2)
-                fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['s_t0'], z=df_values['Temperature'], name='T2'), row=1, col=3)
+            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['s_t0'], z=df_values['SSE'], name='SSE'), row=1, col=1)
+            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['s_t0'], z=df_values['Resistance'], name='R2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['s_t0'], z=df_values['Temperature'], name='T2'), row=1, col=3)
 
-                # Add the plot to the HTML report
-                html_report += fig.to_html(full_html=False)
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
 
-                # Create the figure object
-                fig = make_subplots(rows=1, cols=2, subplot_titles=("R2 uncertainty", "T2 uncertainty"))
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, subplot_titles=("R2 uncertainty", "T2 uncertainty"))
 
-                fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['s_t0'], z=df_stdvalues['Resistance'], name='s_R2'), row=1, col=1)
-                fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['s_t0'], z=df_stdvalues['Temperature'], name='s_T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['s_t0'], z=df_stdvalues['Resistance'], name='s_R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['s_t0'], z=df_stdvalues['Temperature'], name='s_T2'), row=1, col=2)
 
-                # Add the plot to the HTML report
-                html_report += fig.to_html(full_html=False)
+            # Add the plot to the HTML report
+            html_report += fig.to_html(full_html=False)
 
     # Save the HTML report to a file
     with open("report_Map_Montecarlo.html", "w", encoding="utf-16") as file:
