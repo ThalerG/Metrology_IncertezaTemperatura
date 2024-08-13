@@ -12,6 +12,8 @@ from itertools import product
 import os
 import warnings
 
+PLOTRMSE = False
+
 # Incertezas de medição:
 
 s_t0 = 0.1 # Incerteza do tempo inicial
@@ -249,7 +251,7 @@ if __name__ == '__main__':
             x = df_values['dT'].unique()
             y = df_values['N_points'].unique()
 
-            z_sse = np.empty((len(y), len(x)))
+            z_rmse = np.empty((len(y), len(x)))
             z_r2 = np.empty((len(y), len(x)))
             z_t2 = np.empty((len(y), len(x)))
             z_s_r2 = np.empty((len(y), len(x)))
@@ -260,22 +262,23 @@ if __name__ == '__main__':
                     row = df_values[(df_values['dT'] == dT) & (df_values['N_points'] == Npoints)]
                     row_s = df_stdvalues[(df_stdvalues['dT'] == dT) & (df_stdvalues['N_points'] == Npoints)]
                     if len(row) > 0:
-                        z_sse[j, i] = row['SSE'].values[0]
+                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/Npoints)
                         z_r2[j, i] = row['Resistance'].values[0]
                         z_t2[j, i] = row['Temperature'].values[0]
                         z_s_r2[j, i] = row_s['Resistance'].values[0]
                         z_s_t2[j, i] = row_s['Temperature'].values[0]
                     else:
-                        z_sse[j, i] = np.nan
+                        z_rmse[j, i] = np.nan
                         z_r2[j, i] = np.nan
                         z_t2[j, i] = np.nan
                         z_s_r2[j, i] = np.nan
                         z_s_t2[j, i] = np.nan
 
-            # SSE plot
-            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
-            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='dT [s]', yaxis_title='N_points', zaxis_title='Value'))
-            html_report += fig.to_html(full_html=False)
+            if PLOTRMSE:
+                # RMSE plot
+                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+                fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dT [s]', yaxis_title='N_points', zaxis_title='Value'))
+                html_report += fig.to_html(full_html=False)
 
             # Create the figure object
             fig = make_subplots(rows=1, cols=2, 
@@ -354,7 +357,7 @@ if __name__ == '__main__':
             x = df_values['dT'].unique()
             y = df_values['t1'].unique()
 
-            z_sse = np.empty((len(y), len(x)))
+            z_rmse = np.empty((len(y), len(x)))
             z_r2 = np.empty((len(y), len(x)))
             z_t2 = np.empty((len(y), len(x)))
             z_s_r2 = np.empty((len(y), len(x)))
@@ -365,21 +368,21 @@ if __name__ == '__main__':
                     row = df_values[(df_values['dT'] == dT) & (df_values['t1'] == t1)]
                     row_s = df_stdvalues[(df_stdvalues['dT'] == dT) & (df_stdvalues['t1'] == t1)]
                     if len(row) > 0:
-                        z_sse[j, i] = row['SSE'].values[0]
+                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/an1_Npoints)
                         z_r2[j, i] = row['Resistance'].values[0]
                         z_t2[j, i] = row['Temperature'].values[0]
                         z_s_r2[j, i] = row_s['Resistance'].values[0]
                         z_s_t2[j, i] = row_s['Temperature'].values[0]
                     else:
-                        z_sse[j, i] = np.nan
+                        z_rmse[j, i] = np.nan
                         z_r2[j, i] = np.nan
                         z_t2[j, i] = np.nan
                         z_s_r2[j, i] = np.nan
                         z_s_t2[j, i] = np.nan
 
-            # SSE plot
-            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
-            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='dT [s]', yaxis_title='t1 [s]', zaxis_title='Value'))
+            # RMSE plot
+            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+            fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dT [s]', yaxis_title='t1 [s]', zaxis_title='Value'))
             html_report += fig.to_html(full_html=False)
 
             # Create the figure object
@@ -458,7 +461,7 @@ if __name__ == '__main__':
             x = df_values['t1'].unique()
             y = df_values['s_t0'].unique()
 
-            z_sse = np.empty((len(y), len(x)))
+            z_rmse = np.empty((len(y), len(x)))
             z_r2 = np.empty((len(y), len(x)))
             z_t2 = np.empty((len(y), len(x)))
             z_s_r2 = np.empty((len(y), len(x)))
@@ -469,22 +472,23 @@ if __name__ == '__main__':
                     row = df_values[(df_values['t1'] == t1) & (df_values['s_t0'] == s_t0)]
                     row_s = df_stdvalues[(df_stdvalues['t1'] == t1) & (df_stdvalues['s_t0'] == s_t0)]
                     if len(row) > 0:
-                        z_sse[j, i] = row['SSE'].values[0]
+                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/an2_Npoints)
                         z_r2[j, i] = row['Resistance'].values[0]
                         z_t2[j, i] = row['Temperature'].values[0]
                         z_s_r2[j, i] = row_s['Resistance'].values[0]
                         z_s_t2[j, i] = row_s['Temperature'].values[0]
                     else:
-                        z_sse[j, i] = np.nan
+                        z_rmse[j, i] = np.nan
                         z_r2[j, i] = np.nan
                         z_t2[j, i] = np.nan
                         z_s_r2[j, i] = np.nan
                         z_s_t2[j, i] = np.nan
 
-            # SSE plot
-            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
-            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='t1 [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
-            html_report += fig.to_html(full_html=False)
+            if PLOTRMSE:
+                # RMSE plot
+                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+                fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='t1 [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
+                html_report += fig.to_html(full_html=False)
 
             # Create the figure object
             fig = make_subplots(rows=1, cols=2, 
@@ -565,7 +569,7 @@ if __name__ == '__main__':
             x = df_values['Npoints'].unique()
             y = df_values['s_t0'].unique()
 
-            z_sse = np.empty((len(y), len(x)))
+            z_rmse = np.empty((len(y), len(x)))
             z_r2 = np.empty((len(y), len(x)))
             z_t2 = np.empty((len(y), len(x)))
             z_s_r2 = np.empty((len(y), len(x)))
@@ -576,22 +580,23 @@ if __name__ == '__main__':
                     row = df_values[(df_values['Npoints'] == Npoints) & (df_values['s_t0'] == s_t0)]
                     row_s = df_stdvalues[(df_stdvalues['Npoints'] == Npoints) & (df_stdvalues['s_t0'] == s_t0)]
                     if len(row) > 0:
-                        z_sse[j, i] = row['SSE'].values[0]
+                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/Npoints)
                         z_r2[j, i] = row['Resistance'].values[0]
                         z_t2[j, i] = row['Temperature'].values[0]
                         z_s_r2[j, i] = row_s['Resistance'].values[0]
                         z_s_t2[j, i] = row_s['Temperature'].values[0]
                     else:
-                        z_sse[j, i] = np.nan
+                        z_rmse[j, i] = np.nan
                         z_r2[j, i] = np.nan
                         z_t2[j, i] = np.nan
                         z_s_r2[j, i] = np.nan
                         z_s_t2[j, i] = np.nan
 
-            # SSE plot
-            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
-            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='Npoints', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
-            html_report += fig.to_html(full_html=False)
+            if PLOTRMSE:
+                # RMSE plot
+                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+                fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='Npoints', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
+                html_report += fig.to_html(full_html=False)
 
             # Create the figure object
             fig = make_subplots(rows=1, cols=2, 
@@ -671,7 +676,7 @@ if __name__ == '__main__':
             x = df_values['dt'].unique()
             y = df_values['s_t0'].unique()
 
-            z_sse = np.empty((len(y), len(x)))
+            z_rmse = np.empty((len(y), len(x)))
             z_r2 = np.empty((len(y), len(x)))
             z_t2 = np.empty((len(y), len(x)))
             z_s_r2 = np.empty((len(y), len(x)))
@@ -682,20 +687,23 @@ if __name__ == '__main__':
                     row = df_values[(df_values['dt'] == dt) & (df_values['s_t0'] == s_t0)]
                     row_s = df_stdvalues[(df_stdvalues['dt'] == dt) & (df_stdvalues['s_t0'] == s_t0)]
                     if len(row) > 0:
+                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/an4_Npoints)
+                        z_r2[j, i] = row['Resistance'].values[0]
                         z_t2[j, i] = row['Temperature'].values[0]
                         z_s_r2[j, i] = row_s['Resistance'].values[0]
                         z_s_t2[j, i] = row_s['Temperature'].values[0]
                     else:
-                        z_sse[j, i] = np.nan
+                        z_rmse[j, i] = np.nan
                         z_r2[j, i] = np.nan
                         z_t2[j, i] = np.nan
                         z_s_r2[j, i] = np.nan
                         z_s_t2[j, i] = np.nan
 
-            # SSE plot
-            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_sse, name='SSE')])
-            fig.update_layout(title='SSE [Ω²]', scene = dict(xaxis_title='dt [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
-            html_report += fig.to_html(full_html=False)
+            if PLOTRMSE:
+                # RMSE plot
+                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+                fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dt [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
+                html_report += fig.to_html(full_html=False)
 
             # Create the figure object
             fig = make_subplots(rows=1, cols=2, 
