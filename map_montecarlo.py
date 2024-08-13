@@ -127,7 +127,7 @@ if __name__ == '__main__':
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
 
-    model = [('exp',0)]
+    model = ('exp',0)
 
     N_montecarlo = 200 # Número de simulações de Monte Carlo 
 
