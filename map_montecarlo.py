@@ -12,7 +12,7 @@ from itertools import product
 import os
 import warnings
 
-PLOTRMSE = False
+PLOTRMSE = True
 
 # Incertezas de medição:
 
@@ -276,7 +276,7 @@ if __name__ == '__main__':
 
             if PLOTRMSE:
                 # RMSE plot
-                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE',showscale=False)])
                 fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dT [s]', yaxis_title='N_points', zaxis_title='Value'))
                 html_report += fig.to_html(full_html=False)
 
@@ -285,9 +285,9 @@ if __name__ == '__main__':
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2',showscale=False), row=1, col=1)
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2',showscale=False), row=1, col=2)
 
             fig.update_scenes(xaxis_title='dT [s]', 
                               yaxis_title='N_points', 
@@ -302,11 +302,11 @@ if __name__ == '__main__':
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
             fig.update_scenes(xaxis_title='dT [s]', 
                               yaxis_title='N_points', 
                               zaxis_title='Value')
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -381,7 +381,7 @@ if __name__ == '__main__':
                         z_s_t2[j, i] = np.nan
 
             # RMSE plot
-            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE', showscale=False)])
             fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dT [s]', yaxis_title='t1 [s]', zaxis_title='Value'))
             html_report += fig.to_html(full_html=False)
 
@@ -390,9 +390,9 @@ if __name__ == '__main__':
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2', showscale=False), row=1, col=1)
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2', showscale=False), row=1, col=2)
 
             fig.update_scenes(xaxis_title='dT [s]', 
                               yaxis_title='t1 [s]', 
@@ -406,11 +406,11 @@ if __name__ == '__main__':
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
             fig.update_scenes(xaxis_title='dT [s]', 
                               yaxis_title='t1 [s]', 
                               zaxis_title='Value')
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -486,7 +486,7 @@ if __name__ == '__main__':
 
             if PLOTRMSE:
                 # RMSE plot
-                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE', showscale=False)])
                 fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='t1 [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
                 html_report += fig.to_html(full_html=False)
 
@@ -495,9 +495,9 @@ if __name__ == '__main__':
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2', showscale=False), row=1, col=1)
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2', showscale=False), row=1, col=2)
 
             fig.update_scenes(xaxis_title='t1 [s]', 
                               yaxis_title='s_t0 [s]', 
@@ -512,13 +512,13 @@ if __name__ == '__main__':
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
             fig.update_scenes(xaxis_title='t1 [s]', 
                               yaxis_title='s_t0 [s]', 
                               zaxis_title='Value',
                               yaxis_type='log')
             
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -594,7 +594,7 @@ if __name__ == '__main__':
 
             if PLOTRMSE:
                 # RMSE plot
-                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE', showscale=False)])
                 fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='Npoints', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
                 html_report += fig.to_html(full_html=False)
 
@@ -603,9 +603,9 @@ if __name__ == '__main__':
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2', showscale=False), row=1, col=1)
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2', showscale=False), row=1, col=2)
 
             fig.update_scenes(xaxis_title='Npoints', 
                               yaxis_title='s_t0 [s]', 
@@ -620,12 +620,12 @@ if __name__ == '__main__':
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
             fig.update_scenes(xaxis_title='Npoints', 
                               yaxis_title='s_t0 [s]', 
                               zaxis_title='Value',
                               yaxis_type='log')
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -701,7 +701,7 @@ if __name__ == '__main__':
 
             if PLOTRMSE:
                 # RMSE plot
-                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE')])
+                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE',showscale=False)])
                 fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dt [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
                 html_report += fig.to_html(full_html=False)
 
@@ -710,9 +710,9 @@ if __name__ == '__main__':
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=1)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2',showscale=False), row=1, col=1)
 
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2',showscale=False), row=1, col=2)
 
             fig.update_scenes(xaxis_title='dt [s]', 
                               yaxis_title='s_t0 [s]', 
