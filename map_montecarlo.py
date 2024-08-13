@@ -10,6 +10,7 @@ import functools
 from multiprocessing import Pool
 from itertools import product
 import os
+import warnings
 
 # Incertezas de medição:
 
@@ -101,7 +102,7 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2
     if np.sum(ind) == 0:
         raise ValueError("None of the provided time data fits the desired configuration.")
     elif np.sum(ind) < n_x:
-        raise Warning("Not all elements of the desired configuration are present in the provided time data. Proceeding with the available data.")
+        warnings.warn("Not all elements of the desired configuration are present in the provided time data. Proceeding with the available data.")
 
     x_tot = x_og[ind]
     y_tot = y_og[ind]
