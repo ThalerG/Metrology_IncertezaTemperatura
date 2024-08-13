@@ -104,7 +104,7 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2
     elif np.sum(ind) < n_x:
         raise Warning("Not all elements of the desired configuration are present in the provided time data. Proceeding with the available data.")
 
-    x_tot = x_tot[ind]
+    x_tot = x_og[ind]
     y_tot = y_og[ind]
 
     # Monte Carlo simulation for deviation of sample time
