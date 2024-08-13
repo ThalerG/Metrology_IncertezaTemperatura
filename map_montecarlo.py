@@ -424,7 +424,7 @@ if __name__ == '__main__':
                 # Add the standard deviation
                 df_stdvalues.loc[ind] = [t1, s_t0, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
 
-            x = df_values['dT'].unique()
+            x = df_values['t1'].unique()
             y = df_values['s_t0'].unique()
 
             z_sse = np.empty((len(y), len(x)))
