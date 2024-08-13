@@ -43,11 +43,10 @@ n_analyses = 3
 ###### Análise 0: Nº de pontos x Distância entre pontos ######
 
 an0_dT = [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]
-an0_Npoints = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+an0_Npoints = [2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
 an0_t1 = 4
 
 ###### Análise 1: Distância entre pontos x tempo inicial ######
-
 
 an1_t1 = [2,4,6,8,10]
 an1_dT = [2,4,6,8,10]
@@ -195,10 +194,9 @@ if __name__ == '__main__':
 
             df_values = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
+            html_report += f"<h3>Analysis 0: Number of measurements x Time between measurements</h3>\n"
 
             for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
-
-                html_report += f"<h3>Analysis 0: Number of measurements x Time between measurements</h3>\n"
 
                 dT = condition[0]
                 Npoints = condition[1]
@@ -230,21 +228,60 @@ if __name__ == '__main__':
                 # Add the standard deviation values to the dataframe
                 df_stdvalues.loc[ind] = [dT, Npoints, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
 
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=3, subplot_titles=("SSE", "R2", "T2"))
+            x = df_values['dT'].unique()
+            y = df_values['N_points'].unique()
 
-            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['N_points'], z=df_values['SSE'], name='SSE'), row=1, col=1)
-            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['N_points'], z=df_values['Resistance'], name='R2'), row=1, col=2)
-            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['N_points'], z=df_values['Temperature'], name='T2'), row=1, col=3)
+            z_sse = np.empty((len(y), len(x)))
+            z_r2 = np.empty((len(y), len(x)))
+            z_t2 = np.empty((len(y), len(x)))
+            z_s_r2 = np.empty((len(y), len(x)))
+            z_s_t2 = np.empty((len(y), len(x)))
+
+            for i, dT in enumerate(x):
+                for j, Npoints in enumerate(y):
+                    row = df_values[(df_values['dT'] == dT) & (df_values['N_points'] == Npoints)]
+                    row_s = df_stdvalues[(df_stdvalues['dT'] == dT) & (df_stdvalues['N_points'] == Npoints)]
+                    if len(row) > 0:
+                        z_sse[j, i] = row['SSE'].values[0]
+                        z_r2[j, i] = row['Resistance'].values[0]
+                        z_t2[j, i] = row['Temperature'].values[0]
+                        z_s_r2[j, i] = row_s['Resistance'].values[0]
+                        z_s_t2[j, i] = row_s['Temperature'].values[0]
+                    else:
+                        z_sse[j, i] = np.nan
+                        z_r2[j, i] = np.nan
+                        z_t2[j, i] = np.nan
+                        z_s_r2[j, i] = np.nan
+                        z_s_t2[j, i] = np.nan
+
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=3, 
+                                specs=[[{"type": "surface"},{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=['SSE [Ω²]', 'Resistance [Ω]', 'Temperature [°C]'])
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_sse, name='SSE'), row=1, col=1)
+            fig.update_scenes(xaxis_title='dT [s]', 
+                              yaxis_title='N_points', 
+                              zaxis_title='Value')
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=2)
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=3)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
 
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, subplot_titles=("R2 uncertainty", "T2 uncertainty"))
 
-            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['N_points'], z=df_stdvalues['Resistance'], name='s_R2'), row=1, col=1)
-            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['N_points'], z=df_stdvalues['Temperature'], name='s_T2'), row=1, col=2)
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
+            fig.update_scenes(xaxis_title='dT [s]', 
+                              yaxis_title='N_points', 
+                              zaxis_title='Value')
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -289,21 +326,59 @@ if __name__ == '__main__':
                 # Add the standard deviation
                 df_stdvalues.loc[ind] = [t1, dT, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
 
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=3, subplot_titles=("SSE", "R2", "T2"))
+            x = df_values['dT'].unique()
+            y = df_values['t1'].unique()
 
-            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['t1'], z=df_values['SSE'], name='SSE'), row=1, col=1)
-            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['t1'], z=df_values['Resistance'], name='R2'), row=1, col=2)
-            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['t1'], z=df_values['Temperature'], name='T2'), row=1, col=3)
+            z_sse = np.empty((len(y), len(x)))
+            z_r2 = np.empty((len(y), len(x)))
+            z_t2 = np.empty((len(y), len(x)))
+            z_s_r2 = np.empty((len(y), len(x)))
+            z_s_t2 = np.empty((len(y), len(x)))
+
+            for i, dT in enumerate(x):
+                for j, t1 in enumerate(y):
+                    row = df_values[(df_values['dT'] == dT) & (df_values['t1'] == t1)]
+                    row_s = df_stdvalues[(df_stdvalues['dT'] == dT) & (df_stdvalues['t1'] == t1)]
+                    if len(row) > 0:
+                        z_sse[j, i] = row['SSE'].values[0]
+                        z_r2[j, i] = row['Resistance'].values[0]
+                        z_t2[j, i] = row['Temperature'].values[0]
+                        z_s_r2[j, i] = row_s['Resistance'].values[0]
+                        z_s_t2[j, i] = row_s['Temperature'].values[0]
+                    else:
+                        z_sse[j, i] = np.nan
+                        z_r2[j, i] = np.nan
+                        z_t2[j, i] = np.nan
+                        z_s_r2[j, i] = np.nan
+                        z_s_t2[j, i] = np.nan
+
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=3, 
+                                specs=[[{"type": "surface"},{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=['SSE [Ω²]', 'Resistance [Ω]', 'Temperature [°C]'])
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_sse, name='SSE'), row=1, col=1)
+            fig.update_scenes(xaxis_title='dT [s]', 
+                              yaxis_title='t1 [s]', 
+                              zaxis_title='Value')
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=2)
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=3)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
 
             # Create the figure object
-            fig = make_subplots(rows=1, cols=2, subplot_titles=("R2 uncertainty", "T2 uncertainty"))
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
 
-            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['t1'], z=df_stdvalues['Resistance'], name='s_R2'), row=1, col=1)
-            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['t1'], z=df_stdvalues['Temperature'], name='s_T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
+            fig.update_scenes(xaxis_title='dT [s]', 
+                              yaxis_title='t1 [s]', 
+                              zaxis_title='Value')
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -348,21 +423,59 @@ if __name__ == '__main__':
                 # Add the standard deviation
                 df_stdvalues.loc[ind] = [t1, s_t0, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
 
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=3, subplot_titles=("SSE", "R2", "T2"))
+            x = df_values['dT'].unique()
+            y = df_values['s_t0'].unique()
 
-            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['s_t0'], z=df_values['SSE'], name='SSE'), row=1, col=1)
-            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['s_t0'], z=df_values['Resistance'], name='R2'), row=1, col=2)
-            fig.add_trace(go.Surface(x=df_values['dT'], y=df_values['s_t0'], z=df_values['Temperature'], name='T2'), row=1, col=3)
+            z_sse = np.empty((len(y), len(x)))
+            z_r2 = np.empty((len(y), len(x)))
+            z_t2 = np.empty((len(y), len(x)))
+            z_s_r2 = np.empty((len(y), len(x)))
+            z_s_t2 = np.empty((len(y), len(x)))
+
+            for i, dT in enumerate(x):
+                for j, s_t0 in enumerate(y):
+                    row = df_values[(df_values['dT'] == dT) & (df_values['s_t0'] == s_t0)]
+                    row_s = df_stdvalues[(df_stdvalues['dT'] == dT) & (df_stdvalues['s_t0'] == s_t0)]
+                    if len(row) > 0:
+                        z_sse[j, i] = row['SSE'].values[0]
+                        z_r2[j, i] = row['Resistance'].values[0]
+                        z_t2[j, i] = row['Temperature'].values[0]
+                        z_s_r2[j, i] = row_s['Resistance'].values[0]
+                        z_s_t2[j, i] = row_s['Temperature'].values[0]
+                    else:
+                        z_sse[j, i] = np.nan
+                        z_r2[j, i] = np.nan
+                        z_t2[j, i] = np.nan
+                        z_s_r2[j, i] = np.nan
+                        z_s_t2[j, i] = np.nan
+
+            # Create the figure object
+            fig = make_subplots(rows=1, cols=3, 
+                                specs=[[{"type": "surface"},{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=['SSE [Ω²]', 'Resistance [Ω]', 'Temperature [°C]'])
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_sse, name='SSE'), row=1, col=1)
+            fig.update_scenes(xaxis_title='dT [s]', 
+                              yaxis_title='s_t0 [s]', 
+                              zaxis_title='Value')
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2'), row=1, col=2)
+
+            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2'), row=1, col=3)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
 
             # Create the figure object
-            fig = make_subplots(rows=1, cols=2, subplot_titles=("R2 uncertainty", "T2 uncertainty"))
+            fig = make_subplots(rows=1, cols=2, 
+                                specs=[[{"type": "surface"},{"type": "surface"}]],
+                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
 
-            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['s_t0'], z=df_stdvalues['Resistance'], name='s_R2'), row=1, col=1)
-            fig.add_trace(go.Surface(x=df_stdvalues['dT'], y=df_stdvalues['s_t0'], z=df_stdvalues['Temperature'], name='s_T2'), row=1, col=2)
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
+            fig.update_scenes(xaxis_title='dT [s]', 
+                              yaxis_title='s_t0 [s]', 
+                              zaxis_title='Value')
+            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
