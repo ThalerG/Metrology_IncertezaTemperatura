@@ -56,7 +56,7 @@ html_report += "<th>Uncertainty</th>\n"
 html_report += "<th>Symbol</th>\n"  # Add a column for the symbol
 html_report += "</tr>\n"
 html_report += f"<tr><td>Resistance at the beginning of the test</td><td>{R1}</td><td>Ω</td><td>{s_dR}</td><td>R<sub>1</sub></td></tr>\n"
-html_report += f"<tr><td>Resistance at the end of the test</td><td>Monte Carlo mean</td><td>Ω</td><td>Monte Carlo deviation</td><td>R<sub>2</sub></td></tr>\n"
+html_report += f"<tr><td>Resistance at the end of the test</td><td>Regression at t=0</td><td>Ω</td><td>Fit parameters uncertainty</td><td>R<sub>2</sub></td></tr>\n"
 html_report += f"<tr><td>Ambient temperature at the beginning of the test</td><td>{Tamb_1}</td><td>°C</td><td>{s_Tamb1}</td><td>T<sub>amb,1</sub></td></tr>\n"
 html_report += f"<tr><td>Ambient temperature at the end of the test</td><td>{Tamb_2}</td><td>°C</td><td>{s_Tamb2}</td><td>T<sub>amb,2</sub></td></tr>\n"
 html_report += f"<tr><td>Reciprocal of the coefficient of temperature</td><td>{k}</td><td>°C</td><td>-</td><td>k</td></tr>\n"
