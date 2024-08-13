@@ -433,10 +433,10 @@ if __name__ == '__main__':
             z_s_r2 = np.empty((len(y), len(x)))
             z_s_t2 = np.empty((len(y), len(x)))
 
-            for i, dT in enumerate(x):
+            for i, t1 in enumerate(x):
                 for j, s_t0 in enumerate(y):
-                    row = df_values[(df_values['dT'] == dT) & (df_values['s_t0'] == s_t0)]
-                    row_s = df_stdvalues[(df_stdvalues['dT'] == dT) & (df_stdvalues['s_t0'] == s_t0)]
+                    row = df_values[(df_values['t1'] == t1) & (df_values['s_t0'] == s_t0)]
+                    row_s = df_stdvalues[(df_stdvalues['t1'] == t1) & (df_stdvalues['s_t0'] == s_t0)]
                     if len(row) > 0:
                         z_sse[j, i] = row['SSE'].values[0]
                         z_r2[j, i] = row['Resistance'].values[0]
@@ -456,7 +456,7 @@ if __name__ == '__main__':
                                 subplot_titles=['SSE [Ω²]', 'Resistance [Ω]', 'Temperature [°C]'])
 
             fig.add_trace(go.Surface(x=x, y=y, z=z_sse, name='SSE'), row=1, col=1)
-            fig.update_scenes(xaxis_title='dT [s]', 
+            fig.update_scenes(xaxis_title='t1 [s]', 
                               yaxis_title='s_t0 [s]', 
                               zaxis_title='Value')
 
@@ -473,7 +473,7 @@ if __name__ == '__main__':
                                 subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
 
             fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
-            fig.update_scenes(xaxis_title='dT [s]', 
+            fig.update_scenes(xaxis_title='t1 [s]', 
                               yaxis_title='s_t0 [s]', 
                               zaxis_title='Value')
             fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
