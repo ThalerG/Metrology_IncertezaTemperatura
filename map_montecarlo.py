@@ -39,7 +39,7 @@ s_y = s_dR
 
 # Número de análises comparativas
 
-n_analyses = 3
+n_analyses = 5
 
 ###### Análise 0: Nº de pontos x Tempo entre pontos ######
 
