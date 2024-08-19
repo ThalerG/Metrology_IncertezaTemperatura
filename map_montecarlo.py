@@ -11,6 +11,27 @@ from multiprocessing import Pool
 from itertools import product
 import os
 import warnings
+import argparse
+
+# Create the parser
+parser = argparse.ArgumentParser(description='Script for performing Monte Carlo simulations and analysis of the winding temperature of a motor.')
+
+# Add the arguments
+parser.add_argument('--fsave', type=str, default='Resultados', help='Folder to save the results')
+parser.add_argument('--N_montecarlo', type=int, default=200, help='Number of Monte Carlo simulations')
+parser.add_argument('--PLOTRMSE', action='store_true', help='Flag to plot RMSE')
+parser.add_argument('--PLOTSAVE', action='store_true', help='Flag to save plots')
+parser.add_argument('--HTMLSAVE', action='store_true', help='Flag to save HTML report')
+
+# Parse the arguments
+args = parser.parse_args()
+
+# Assign the parsed values to variables
+fsave = args.fsave
+N_montecarlo = args.N_montecarlo
+PLOTRMSE = args.PLOTRMSE
+PLOTSAVE = args.PLOTSAVE
+HTMLSAVE = args.HTMLSAVE
 
 PLOTRMSE = True
 PLOTSAVE = True
