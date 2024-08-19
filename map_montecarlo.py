@@ -143,8 +143,13 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2
     return montecarlo_matrix_xy
 
 if __name__ == '__main__':
+    # Check if the folder exists
+    if not os.path.exists(fsave):
+        # Create the folder
+        os.makedirs(fsave)
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
+
 
     model = ('exp',0)
 
@@ -814,5 +819,5 @@ if __name__ == '__main__':
         
     if HTMLSAVE:
         # Save the HTML report to a file
-        with open("report_Map_Montecarlo.html", "w", encoding="utf-16") as file:
+        with open(fsave + "/report_Map_Montecarlo.html", "w", encoding="utf-16") as file:
             file.write(html_report)
