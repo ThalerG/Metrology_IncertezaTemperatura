@@ -14,6 +14,7 @@ import warnings
 
 PLOTRMSE = True
 PLOTSAVE = True
+HTMLSAVE = True
 fsave = r"Resultados"
 
 # Incertezas de medição:
@@ -811,6 +812,7 @@ if __name__ == '__main__':
                 heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]')
                 heatmap_fig.write_image(fsave + '/a4_sT2.pdf')
         
-    # Save the HTML report to a file
-    with open("report_Map_Montecarlo.html", "w", encoding="utf-16") as file:
-        file.write(html_report)
+    if HTMLSAVE:
+        # Save the HTML report to a file
+        with open("report_Map_Montecarlo.html", "w", encoding="utf-16") as file:
+            file.write(html_report)
