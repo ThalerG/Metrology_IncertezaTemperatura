@@ -169,8 +169,6 @@ if __name__ == '__main__':
 
     model = ('exp',0)
 
-    N_montecarlo = 200 # Número de simulações de Monte Carlo 
-
     x_og = df['Time'].values
     y_og = df['Resistance'].values
 
