@@ -23,21 +23,6 @@ parser.add_argument('--PLOTRMSE', action='store_true', help='Flag to plot RMSE')
 parser.add_argument('--PLOTSAVE', action='store_true', help='Flag to save plots')
 parser.add_argument('--HTMLSAVE', action='store_true', help='Flag to save HTML report')
 
-# Parse the arguments
-args = parser.parse_args()
-
-# Assign the parsed values to variables
-fsave = args.fsave
-N_montecarlo = args.N_montecarlo
-PLOTRMSE = args.PLOTRMSE
-PLOTSAVE = args.PLOTSAVE
-HTMLSAVE = args.HTMLSAVE
-
-PLOTRMSE = True
-PLOTSAVE = True
-HTMLSAVE = True
-fsave = r"Resultados"
-
 # Incertezas de medição:
 
 s_t0 = 0.1 # Incerteza do tempo inicial
@@ -164,6 +149,16 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2
     return montecarlo_matrix_xy
 
 if __name__ == '__main__':
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Assign the parsed values to variables
+    fsave = args.fsave
+    N_montecarlo = args.N_montecarlo
+    PLOTRMSE = args.PLOTRMSE
+    PLOTSAVE = args.PLOTSAVE
+    HTMLSAVE = args.HTMLSAVE
+
     # Check if the folder exists
     if not os.path.exists(fsave):
         # Create the folder
