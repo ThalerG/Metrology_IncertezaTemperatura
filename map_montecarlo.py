@@ -19,9 +19,9 @@ parser = argparse.ArgumentParser(description='Script for performing Monte Carlo 
 # Add the arguments
 parser.add_argument('--fsave', type=str, default='Resultados', help='Folder to save the results')
 parser.add_argument('--N_montecarlo', type=int, default=200, help='Number of Monte Carlo simulations')
-parser.add_argument('--PLOTRMSE', action='store_true', help='Flag to plot RMSE')
-parser.add_argument('--PLOTSAVE', action='store_true', help='Flag to save plots')
-parser.add_argument('--HTMLSAVE', action='store_true', help='Flag to save HTML report')
+parser.add_argument('--PLOTRMSE', action='store_false', help='Flag to plot RMSE')
+parser.add_argument('--PLOTSAVE', action='store_false', help='Flag to save plots')
+parser.add_argument('--HTMLSAVE', action='store_false', help='Flag to save HTML report')
 
 # Incertezas de medição:
 
@@ -226,7 +226,7 @@ if __name__ == '__main__':
 
     n_jobs = os.cpu_count()
 
-    for an in tqdm.tqdm(range(n_analyses), desc = 'Model', position=0):
+    for an in tqdm.tqdm(range(n_analyses), desc = 'Analysis', position=0):
         if an == 0: ###### Análise 0: Nº de pontos x Tempo entre pontos ######
             html_report += f"<h3>Analysis 0: Number of measurements x Time between measurements</h3>\n"
             html_report += f"<p>Initial time: {an0_t1} s</p>\n"
@@ -238,7 +238,7 @@ if __name__ == '__main__':
             df_values = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
             
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
 
                 dT = condition[0]
                 Npoints = condition[1]
@@ -361,7 +361,7 @@ if __name__ == '__main__':
             df_values = pd.DataFrame(columns=['t1','dT','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['t1','dT','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
 
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
                 
                 t1 = condition[0]
                 dT = condition[1]
@@ -472,7 +472,7 @@ if __name__ == '__main__':
             df_values = pd.DataFrame(columns=['t1','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['t1','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
 
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
 
                 t1 = condition[0]
                 s_t0 = condition[1]
@@ -596,7 +596,7 @@ if __name__ == '__main__':
             df_values = pd.DataFrame(columns=['Npoints','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['Npoints','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
 
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
 
                 Npoints = condition[0]
                 s_t0 = condition[1]
@@ -719,7 +719,7 @@ if __name__ == '__main__':
             df_values = pd.DataFrame(columns=['dt','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
             df_stdvalues = pd.DataFrame(columns=['dt','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
 
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1)):
+            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
 
                 dt = condition[0]
                 s_t0 = condition[1]
