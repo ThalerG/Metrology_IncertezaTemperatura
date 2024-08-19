@@ -13,6 +13,8 @@ import os
 import warnings
 
 PLOTRMSE = True
+PLOTSAVE = True
+fsave = r"Resultados"
 
 # Incertezas de medição:
 
@@ -286,6 +288,7 @@ if __name__ == '__main__':
                                 subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
 
             fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2',showscale=False), row=1, col=1)
+            
 
             fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2',showscale=False), row=1, col=2)
 
@@ -307,6 +310,22 @@ if __name__ == '__main__':
                               yaxis_title='N_points', 
                               zaxis_title='Value')
             fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
+
+            if PLOTSAVE:
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
+                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='dT [s]', yaxis_title='N_points')
+                heatmap_fig.write_image(fsave + '/a0_RMSE.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
+                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='dT [s]', yaxis_title='N_points')
+                heatmap_fig.write_image(fsave + '/a0_R2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='dT [s]', yaxis_title='N_points')
+                heatmap_fig.write_image(fsave + '/a0_T2.pdf')
+                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='dT [s]', yaxis_title='N_points')
+                heatmap_fig.write_image(fsave + '/a0_sR2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='dT [s]', yaxis_title='N_points')
+                heatmap_fig.write_image(fsave + '/a0_sT2.pdf')
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
@@ -384,27 +403,18 @@ if __name__ == '__main__':
             fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE', showscale=False)])
             fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dT [s]', yaxis_title='t1 [s]', zaxis_title='Value'))
             html_report += fig.to_html(full_html=False)
-
+            
             # Create the figure object
             fig = make_subplots(rows=1, cols=2, 
                                 specs=[[{"type": "surface"},{"type": "surface"}]],
                                 subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
 
             fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2', showscale=False), row=1, col=1)
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2', showscale=False), row=1, col=2)
-
             fig.update_scenes(xaxis_title='dT [s]', 
                               yaxis_title='t1 [s]', 
                               zaxis_title='Value')
 
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
+            
 
             fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
             fig.update_scenes(xaxis_title='dT [s]', 
@@ -414,6 +424,22 @@ if __name__ == '__main__':
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
+
+            if PLOTSAVE:
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
+                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='dT [s]', yaxis_title='t1 [s]')
+                heatmap_fig.write_image(fsave + '/a1_RMSE.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
+                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='dT [s]', yaxis_title='t1 [s]')
+                heatmap_fig.write_image(fsave + '/a1_R2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='dT [s]', yaxis_title='t1 [s]')
+                heatmap_fig.write_image(fsave + '/a1_T2.pdf')
+                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='dT [s]', yaxis_title='t1 [s]')
+                heatmap_fig.write_image(fsave + '/a1_sR2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='dT [s]', yaxis_title='t1 [s]')
+                heatmap_fig.write_image(fsave + '/a1_sT2.pdf')
 
         elif an == 2: ###### Análise 2: Tempo inicial x incerteza t0 ######
             html_report += f"<h3>Analysis 2: Initial time x Uncertainty of initial time</h3>\n"
@@ -523,6 +549,22 @@ if __name__ == '__main__':
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
 
+            if PLOTSAVE:
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
+                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a2_RMSE.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
+                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a2_R2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a2_T2.pdf')
+                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a2_sR2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a2_sT2.pdf')
+
         elif an == 3: ###### Analysis 3: Number of points x Initial time uncertainty ######
             html_report += f"<h3>Analysis 3: Number of points x Uncertainty of initial time</h3>\n"
             html_report += f"<p>Time between measurements: {an3_dt} s</p>\n"
@@ -629,6 +671,22 @@ if __name__ == '__main__':
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
+
+            if PLOTSAVE:
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
+                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a3_RMSE.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
+                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a3_R2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a3_T2.pdf')
+                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a3_sR2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a3_sT2.pdf')
  
         elif an == 4: ###### Analysis 4: Time between points x Uncertainty of initial time ######
             html_report += f"<h3>Analysis 4: Time between points x Uncertainty of initial time</h3>\n"
@@ -736,6 +794,22 @@ if __name__ == '__main__':
 
             # Add the plot to the HTML report
             html_report += fig.to_html(full_html=False)
+
+            if PLOTSAVE:
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
+                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a4_RMSE.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
+                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a4_R2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a4_T2.pdf')
+                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a4_sR2.pdf')
+                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
+                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]')
+                heatmap_fig.write_image(fsave + '/a4_sT2.pdf')
         
     # Save the HTML report to a file
     with open("report_Map_Montecarlo.html", "w", encoding="utf-16") as file:
