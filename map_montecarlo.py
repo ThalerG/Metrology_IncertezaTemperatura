@@ -48,42 +48,59 @@ s_Tamb2 = 0.1 # Incerteza da medição de temperatura no final do teste
 s_x = s_dt
 s_y = s_dR
 
-# Número de análises comparativas
-
-n_analyses = 5
+analyses = []
 
 ###### Análise 0: Nº de pontos x Tempo entre pontos ######
 
-an0_dT = [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]
-an0_Npoints = [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
-an0_t1 = 4
+analyses.append({
+    'dt': [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40],
+    'Npoints': [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
+    't1': [4],
+    's_t0': [0.1]
+    })
 
 ###### Análise 1: Tempo entre pontos x tempo inicial ######
 
-an1_t1 = [4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40]
-an1_dT = [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36]
-an1_Npoints = 3
+analyses.append({
+    'dt': [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40],
+    'Npoints': [3],
+    't1': [4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40],
+    's_t0': [0.1]
+    })
 
 ###### Análise 2: Tempo inicial x incerteza t0 ######
 
-an2_Npoints = 3
-an2_dt = 8
-an2_t1 = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
-an2_s_t0 = [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1]
+analyses.append({
+    'dt': [8],
+    'Npoints': [3],
+    't1': [4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40],
+    's_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1]
+    })
 
 ###### Análise 3: Nº de pontos x incerteza t0 ######
 
-an3_Npoints = [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
-an3_dt = 8
-an3_t1 = 4
-an3_s_t0 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]
+analyses.append({
+    'dt': [8],
+    'Npoints': [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
+    't1': 4,
+    's_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1]
+    })
 
 ###### Análise 4: Tempo entre pontos x incerteza t0 ######
 
-an4_Npoints = 3
-an4_dt = [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36]
-an4_t1 = 4
-an4_s_t0 = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]
+analyses.append({
+    'dt': [2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40],
+    'Npoints': [3],
+    't1': [4],
+    's_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1]
+})
+
+def get_log_ticks(min, max, step = 0.5):
+    logMin = np.floor(np.log10(min))
+    logMax = np.ceil(np.log10(max))
+    logticks = np.arange(logMin, logMax + step, step)
+    ticks = np.power(10, logticks)
+    return ticks, logticks
 
 def process_montecarlo(xy, s_x, s_y, model):
     estimation_model = generate_estimation_models(type = model[0], degree=model[1])
@@ -148,6 +165,298 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2
 
     return montecarlo_matrix_xy
 
+def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarray):
+    var_params = [key for key in analysis_params if len(analysis_params[key]) > 1]
+
+    if len(var_params) > 2:
+        raise ValueError("Too many variable parameters. Please provide a max of two variable parameter.")
+    
+    conditions = pd.DataFrame(columns=var_params, data=product(*[analysis_params[key] for key in var_params]))
+    for key in analysis_params:
+        if key not in var_params:
+            conditions[key] = analysis_params[key][0]
+
+    ind = (conditions['t1'] >= x_og[0]) & ((conditions['t1'] + (conditions['Npoints']-1)*conditions['dt']) <= x_og[-1])
+    conditions = conditions.loc[ind]
+
+    results_labels = ['mean_SSE', 'mean_Resistance', 'mean_EstimationUncertainty', 'mean_DeltaTemperature', 'mean_Temperature',
+                      'std_SSE', 'std_Resistance', 'std_EstimationUncertainty', 'std_DeltaTemperature', 'std_Temperature']
+    results_data = []
+
+    for k,row in tqdm.tqdm(conditions.iterrows(), desc = 'Condition', position=1, leave = True,  total=conditions.shape[0]):
+        montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = row['s_t0'], t1 = int(row['t1']), dt = int(row['dt']), n_x = int(row['Npoints']), N_montecarlo = N_montecarlo)
+        
+        with Pool(n_jobs) as p:
+            results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
+
+        # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
+        mean_R2 = np.mean([result['R2'] for result in results_model])
+        mean_s_R2 = np.mean([result['s_R2'] for result in results_model])
+        mean_sum_square = np.mean([result['result'].sum_square for result in results_model])
+
+        DT = delta_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
+        T2 = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
+
+        # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
+        std_R2 = np.std([result['R2'] for result in results_model])
+        std_s_R2 = np.std([result['s_R2'] for result in results_model])
+        std_sum_square = np.std([result['result'].sum_square for result in results_model])
+
+        s_DT = delta_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
+        s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
+
+        # Append results
+        results_data.append([mean_sum_square, mean_R2, mean_s_R2, DT, T2,
+                             std_sum_square, std_R2, std_s_R2, s_DT, s_T2])
+        
+    results = pd.DataFrame(columns=results_labels, data=results_data)
+    results = pd.concat([conditions, results], axis=1)
+
+    return results
+
+def plot_html_results(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool = True, log_x = False, log_y = False, log_z = None):
+    varNames = {'t1': 'Initial time [s]', 
+                'dt': 'Time between measurements [s]', 
+                'Npoints': 'Number of measurements', 
+                's_t0': 'Initial time uncertainty [s]'}
+
+    html_report = f"Analysis: {varNames[varX]} x {varNames[varY]}</h3>\n"
+
+    html_report += f"<p>Initial time: {results['t1'].unique()}</p>\n"
+    html_report += f"<p>Time between measurements: {results['dt'].unique()}</p>\n"
+    html_report += f"<p>Number of measurements: {results['Npoints'].unique()}</p>\n"
+    html_report += f"<p>Initial time uncertainty: {results['s_t0'].unique()}</p>\n"
+
+    x = results[varX].unique()
+    x.sort()
+    y = results[varY].unique()
+    y.sort()
+
+    z_rmse = np.empty((len(y), len(x)))
+    z_r2 = np.empty((len(y), len(x)))
+    z_t2 = np.empty((len(y), len(x)))
+    z_s_r2 = np.empty((len(y), len(x)))
+    z_s_t2 = np.empty((len(y), len(x)))
+
+    for i, x_val in enumerate(x):
+        for j, y_val in enumerate(y):
+            ind = (results[varX] == x_val) & (results[varY] == y_val)
+            if np.sum(ind) == 0:
+                z_rmse[i,j] = np.nan
+                z_r2[i,j] = np.nan
+                z_t2[i,j] = np.nan
+                z_s_r2[i,j] = np.nan
+                z_s_t2[i,j] = np.nan
+            else:
+                z_rmse[i,j] = np.sqrt(results.loc[ind, 'mean_SSE'].values[0]/(results.loc[ind, 'N_points'].values[0])) # SSE to RMSE
+                z_r2[i,j] = results.loc[ind, 'mean_Resistance'].values[0]
+                z_t2[i,j] = results.loc[ind, 'mean_Temperature'].values[0]
+                z_s_r2[i,j] = results.loc[ind, 'std_Resistance'].values[0]
+                z_s_t2[i,j] = results.loc[ind, 'std_Temperature'].values[0]
+
+    if plot_RMSE:
+        # RMSE plot
+        fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE',showscale=False)])
+        fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title = varNames[varX], yaxis_title= varNames[varY], zaxis_title='RMSE [Ω]'))
+        html_report += fig.to_html(full_html=False)
+
+        if log_x:
+            fig.update_xaxes(type='log')
+        if log_y:
+            fig.update_yaxes(type='log')
+
+    # Create the figure object
+    fig = make_subplots(rows=1, cols=2, 
+                        specs=[[{"type": "surface"},{"type": "surface"}]],
+                        subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
+
+    fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2',showscale=False), row=1, col=1)
+    
+    fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2',showscale=False), row=1, col=2)
+
+    fig.update_scenes(xaxis_title=varNames[varX], 
+                        yaxis_title=varNames[varY], 
+                        zaxis_title='Value')
+    
+    if log_x:
+        fig.update_xaxes(type='log')
+    if log_y:
+        fig.update_yaxes(type='log')
+
+    # Add the plot to the HTML report
+    html_report += fig.to_html(full_html=False)
+
+
+    # Create the figure object
+    fig = make_subplots(rows=1, cols=2, 
+                        specs=[[{"type": "surface"},{"type": "surface"}]],
+                        subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
+
+    fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
+    fig.update_scenes(xaxis_title=varNames[varX], 
+                        yaxis_title=varNames[varY],
+                        zaxis_title='Value')
+    fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
+
+    if log_x:
+        fig.update_xaxes(type='log')
+    if log_y:
+        fig.update_yaxes(type='log')
+
+    # Add the plot to the HTML report
+    html_report += fig.to_html(full_html=False)
+
+    return html_report
+    
+def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool = True, fsave:str = "", prefix:str = "", log_x = False, log_y = False, log_z = None):
+    varNames = {'t1': 'Initial time [s]',
+                'dt': 'Time between measurements [s]',
+                'Npoints': 'Number of measurements',
+                's_t0': 'Initial time uncertainty [s]'}
+    
+    if log_z is None:
+        log_z = [False, False, False, False, False]
+    if not plot_RMSE:
+        log_z = [False] + log_z
+    
+    x = results[varX].unique()
+    x.sort()
+    y = results[varY].unique()
+    y.sort()
+
+    z_rmse = np.empty((len(y), len(x)))
+    z_r2 = np.empty((len(y), len(x)))
+    z_t2 = np.empty((len(y), len(x)))
+    z_s_r2 = np.empty((len(y), len(x)))
+    z_s_t2 = np.empty((len(y), len(x)))
+
+    for i, x_val in enumerate(x):
+        for j, y_val in enumerate(y):
+            ind = (results[varX] == x_val) & (results[varY] == y_val)
+            if np.sum(ind) == 0:
+                z_rmse[i,j] = np.nan
+                z_r2[i,j] = np.nan
+                z_t2[i,j] = np.nan
+                z_s_r2[i,j] = np.nan
+                z_s_t2[i,j] = np.nan
+            else:
+                z_rmse[i,j] = np.sqrt(results.loc[ind, 'mean_SSE'].values[0]/(results.loc[ind, 'N_points'].values[0])) # SSE to RMSE
+                z_r2[i,j] = results.loc[ind, 'mean_Resistance'].values[0]
+                z_t2[i,j] = results.loc[ind, 'mean_Temperature'].values[0]
+                z_s_r2[i,j] = results.loc[ind, 'std_Resistance'].values[0]
+                z_s_t2[i,j] = results.loc[ind, 'std_Temperature'].values[0]
+
+    if plot_RMSE:
+        if log_z[0]:
+            ticks, logticks = get_log_ticks(np.nanmin(z_rmse), np.nanmax(z_rmse))
+            z_rmse = np.log(z_rmse)
+            colorbar = dict(title='RMSE [Ω]',
+                            tickmode="array",
+                            tickvals=ticks,
+                            ticktext=logticks.astype(str),
+                            ticks="outside")
+        else:
+            colorbar = dict(title='RMSE [Ω]')
+        heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse, colorbar=colorbar))
+        heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
+        heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+        heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+        if log_x:
+            heatmap_fig.update_xaxes(type='log')
+        if log_y:
+            heatmap_fig.update_yaxes(type='log')
+        if log_z[0]:
+            heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_rmse), cmax=np.nanmax(z_rmse))
+        heatmap_fig.write_image(fsave + '/' + prefix + '_RMSE.pdf')
+
+    if log_z[1]:
+        ticks, logticks = get_log_ticks(np.nanmin(z_r2), np.nanmax(z_r2))
+        z_r2 = np.log(z_r2)
+        colorbar = dict(title='Resistance [Ω]',
+                        tickmode="array",
+                        tickvals=ticks,
+                        ticktext=logticks.astype(str),
+                        ticks="outside")
+    else:    
+        colorbar = dict(title='Resistance [Ω]')
+    heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2, colorbar=colorbar))
+    heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
+    heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+    heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+    if log_x:
+        heatmap_fig.update_xaxes(type='log')
+    if log_y:
+        heatmap_fig.update_yaxes(type='log')
+    if log_z[1]:
+        heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_r2), cmax=np.nanmax(z_r2))
+    heatmap_fig.write_image(fsave + '/' + prefix + '_R2.pdf')
+
+    if log_z[2]:
+        ticks, logticks = get_log_ticks(np.nanmin(z_t2), np.nanmax(z_t2))
+        z_t2 = np.log(z_t2)
+        colorbar = dict(title='Temperature [°C]',
+                        tickmode="array",
+                        tickvals=ticks,
+                        ticktext=logticks.astype(str),
+                        ticks="outside")
+    else:
+        colorbar = dict(title='Temperature [°C]')
+    heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2, colorbar=colorbar))
+    heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
+    heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+    heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+    if log_x:
+        heatmap_fig.update_xaxes(type='log')
+    if log_y:
+        heatmap_fig.update_yaxes(type='log')
+    if log_z[2]:
+        heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_t2), cmax=np.nanmax(z_t2))
+    heatmap_fig.write_image(fsave + '/' + prefix + '_T2.pdf')
+
+    if log_z[3]:
+        ticks, logticks = get_log_ticks(np.nanmin(z_s_r2), np.nanmax(z_s_r2))
+        z_s_r2 = np.log(z_s_r2)
+        colorbar = dict(title='Resistance uncertainty [Ω]',
+                        tickmode="array",
+                        tickvals=ticks,
+                        ticktext=logticks.astype(str),
+                        ticks="outside")
+    else:
+        colorbar = dict(title='Resistance uncertainty [Ω]')
+    heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_r2, colorbar=colorbar))
+    heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
+    heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+    heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+    if log_x:
+        heatmap_fig.update_xaxes(type='log')
+    if log_y:
+        heatmap_fig.update_yaxes(type='log')
+    if log_z[3]:
+        heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_s_r2), cmax=np.nanmax(z_s_r2))
+    heatmap_fig.write_image(fsave + '/' + prefix + '_sR2.pdf')
+    
+    if log_z[4]:
+        ticks, logticks = get_log_ticks(np.nanmin(z_s_t2), np.nanmax(z_s_t2))
+        z_s_t2 = np.log10(z_s_t2)
+        colorbar = dict(title='Temperature uncertainty [°C]',
+                        tickmode="array",
+                        tickvals=ticks,
+                        ticktext=logticks.astype(str),
+                        ticks="outside")
+    else:
+        colorbar = dict(title='Temperature uncertainty [°C]')
+    heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_t2, colorbar=colorbar))
+    heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
+    heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+    heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
+    heatmap_fig.write_image(fsave + '/' + prefix + '_sT2.pdf')
+    if log_x:
+        heatmap_fig.update_xaxes(type='log')
+    if log_y:
+        heatmap_fig.update_yaxes(type='log')
+    if log_z[4]:
+        heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_s_t2), cmax=np.nanmax(z_s_t2))
+
 if __name__ == '__main__':
     # Parse the arguments
     args = parser.parse_args()
@@ -165,7 +474,6 @@ if __name__ == '__main__':
         os.makedirs(fsave)
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
-
 
     model = ('exp',0)
 
@@ -226,671 +534,14 @@ if __name__ == '__main__':
 
     n_jobs = os.cpu_count()
 
-    for an in tqdm.tqdm(range(n_analyses), desc = 'Analysis', position=0):
-        if an == 0: ###### Análise 0: Nº de pontos x Tempo entre pontos ######
-            html_report += f"<h3>Analysis 0: Number of measurements x Time between measurements</h3>\n"
-            html_report += f"<p>Initial time: {an0_t1} s</p>\n"
-            html_report += f"<p>Uncertainty of initial time: {s_t0} s</p>\n"
-
-            conditions = product(an0_dT, an0_Npoints)
-            conditions = [condition for condition in conditions if condition[0]*condition[1] <= x_og[-1]]
-
-            df_values = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
-            df_stdvalues = pd.DataFrame(columns=['dT','N_points','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
-            
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
-
-                dT = condition[0]
-                Npoints = condition[1]
-
-                montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = an0_t1, dt = dT, n_x = Npoints, N_montecarlo = N_montecarlo)
-
-                with Pool(n_jobs) as p:
-                    results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
-
-                # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
-                mean_R2 = np.mean([result['R2'] for result in results_model])
-                mean_s_R2 = np.mean([result['s_R2'] for result in results_model])
-                sum_square = np.mean([result['result'].sum_square for result in results_model])
-
-                DT = delta_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-                T2 = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-
-                # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
-                std_R2 = np.std([result['R2'] for result in results_model])
-                std_s_R2 = np.std([result['s_R2'] for result in results_model])
-                std_sum_square = np.std([result['result'].sum_square for result in results_model])
-
-                s_DT = delta_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-                s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-
-                # Add the mean values to the dataframe
-                df_values.loc[ind] = [dT, Npoints, sum_square, mean_R2, mean_s_R2, DT, T2]
-
-                # Add the standard deviation values to the dataframe
-                df_stdvalues.loc[ind] = [dT, Npoints, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
-
-            x = df_values['dT'].unique()
-            y = df_values['N_points'].unique()
-
-            z_rmse = np.empty((len(y), len(x)))
-            z_r2 = np.empty((len(y), len(x)))
-            z_t2 = np.empty((len(y), len(x)))
-            z_s_r2 = np.empty((len(y), len(x)))
-            z_s_t2 = np.empty((len(y), len(x)))
-
-            for i, dT in enumerate(x):
-                for j, Npoints in enumerate(y):
-                    row = df_values[(df_values['dT'] == dT) & (df_values['N_points'] == Npoints)]
-                    row_s = df_stdvalues[(df_stdvalues['dT'] == dT) & (df_stdvalues['N_points'] == Npoints)]
-                    if len(row) > 0:
-                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/Npoints)
-                        z_r2[j, i] = row['Resistance'].values[0]
-                        z_t2[j, i] = row['Temperature'].values[0]
-                        z_s_r2[j, i] = row_s['Resistance'].values[0]
-                        z_s_t2[j, i] = row_s['Temperature'].values[0]
-                    else:
-                        z_rmse[j, i] = np.nan
-                        z_r2[j, i] = np.nan
-                        z_t2[j, i] = np.nan
-                        z_s_r2[j, i] = np.nan
-                        z_s_t2[j, i] = np.nan
-
-            if PLOTRMSE:
-                # RMSE plot
-                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE',showscale=False)])
-                fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dT [s]', yaxis_title='N_points', zaxis_title='Value'))
-                html_report += fig.to_html(full_html=False)
-
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2',showscale=False), row=1, col=1)
-            
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2',showscale=False), row=1, col=2)
-
-            fig.update_scenes(xaxis_title='dT [s]', 
-                              yaxis_title='N_points', 
-                              zaxis_title='Value')
-
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
-            fig.update_scenes(xaxis_title='dT [s]', 
-                              yaxis_title='N_points', 
-                              zaxis_title='Value')
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
-
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-            if PLOTSAVE:
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
-                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='dT [s]', yaxis_title='N_points', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a0_RMSE.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
-                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='dT [s]', yaxis_title='N_points', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a0_R2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
-                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='dT [s]', yaxis_title='N_points', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a0_T2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_r2))
-                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='dT [s]', yaxis_title='N_points', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a0_sR2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_t2))
-                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='dT [s]', yaxis_title='N_points', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a0_sT2.pdf')
-            
-        elif an == 1: ###### Análise 1: Tempo entre pontos x tempo inicial ######
-            html_report += f"<h3>Analysis 1: Time between measurements x Initial time</h3>\n"
-            html_report += f"<p>Number of measurements: {an1_Npoints}</p>\n"
-            html_report += f"<p>Uncertainty of initial time: {s_t0} s</p>\n"
-
-            conditions = product(an1_t1, an1_dT)
-            conditions = [condition for condition in conditions if condition[0] + condition[1]*(an1_Npoints-1) <= x_og[-1]]
-
-            df_values = pd.DataFrame(columns=['t1','dT','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
-            df_stdvalues = pd.DataFrame(columns=['t1','dT','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
-
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
-                
-                t1 = condition[0]
-                dT = condition[1]
-
-                montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = t1, dt = dT, n_x = an1_Npoints, N_montecarlo = N_montecarlo)
-
-                with Pool(n_jobs) as p:
-                    results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
-
-                # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
-                mean_R2 = np.mean([result['R2'] for result in results_model])
-                mean_s_R2 = np.mean([result['s_R2'] for result in results_model])
-                sum_square = np.mean([result['result'].sum_square for result in results_model])
-
-                DT = delta_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-                T2 = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-
-                # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
-                std_R2 = np.std([result['R2'] for result in results_model])
-                std_s_R2 = np.std([result['s_R2'] for result in results_model])
-                std_sum_square = np.std([result['result'].sum_square for result in results_model])
-
-                s_DT = delta_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-                s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-
-                # Add the mean values to the dataframe
-                df_values.loc[ind] = [t1, dT, sum_square, mean_R2, mean_s_R2, DT, T2]
-
-                # Add the standard deviation
-                df_stdvalues.loc[ind] = [t1, dT, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
-
-            x = df_values['dT'].unique()
-            y = df_values['t1'].unique()
-
-            z_rmse = np.empty((len(y), len(x)))
-            z_r2 = np.empty((len(y), len(x)))
-            z_t2 = np.empty((len(y), len(x)))
-            z_s_r2 = np.empty((len(y), len(x)))
-            z_s_t2 = np.empty((len(y), len(x)))
-
-            for i, dT in enumerate(x):
-                for j, t1 in enumerate(y):
-                    row = df_values[(df_values['dT'] == dT) & (df_values['t1'] == t1)]
-                    row_s = df_stdvalues[(df_stdvalues['dT'] == dT) & (df_stdvalues['t1'] == t1)]
-                    if len(row) > 0:
-                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/an1_Npoints)
-                        z_r2[j, i] = row['Resistance'].values[0]
-                        z_t2[j, i] = row['Temperature'].values[0]
-                        z_s_r2[j, i] = row_s['Resistance'].values[0]
-                        z_s_t2[j, i] = row_s['Temperature'].values[0]
-                    else:
-                        z_rmse[j, i] = np.nan
-                        z_r2[j, i] = np.nan
-                        z_t2[j, i] = np.nan
-                        z_s_r2[j, i] = np.nan
-                        z_s_t2[j, i] = np.nan
-
-            # RMSE plot
-            fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE', showscale=False)])
-            fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dT [s]', yaxis_title='t1 [s]', zaxis_title='Value'))
-            html_report += fig.to_html(full_html=False)
-            
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2', showscale=False), row=1, col=1)
-            fig.update_scenes(xaxis_title='dT [s]', 
-                              yaxis_title='t1 [s]', 
-                              zaxis_title='Value')
-
-            
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
-            fig.update_scenes(xaxis_title='dT [s]', 
-                              yaxis_title='t1 [s]', 
-                              zaxis_title='Value')
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
-
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-            if PLOTSAVE:
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
-                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='dT [s]', yaxis_title='t1 [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a1_RMSE.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
-                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='dT [s]', yaxis_title='t1 [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a1_R2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
-                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='dT [s]', yaxis_title='t1 [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a1_T2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_r2))
-                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='dT [s]', yaxis_title='t1 [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a1_sR2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_t2))
-                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='dT [s]', yaxis_title='t1 [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.write_image(fsave + '/a1_sT2.pdf')
-
-        elif an == 2: ###### Análise 2: Tempo inicial x incerteza t0 ######
-            html_report += f"<h3>Analysis 2: Initial time x Uncertainty of initial time</h3>\n"
-            html_report += f"<p>Time between measurements: {an2_dt} s</p>\n"
-            html_report += f"<p>Number of measurements: {an2_Npoints}</p>\n"
-
-            conditions = product(an2_t1, an2_s_t0)
-            conditions = [condition for condition in conditions if condition[0]+an2_dt*(an2_Npoints -1) <= x_og[-1]]
-
-            df_values = pd.DataFrame(columns=['t1','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
-            df_stdvalues = pd.DataFrame(columns=['t1','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
-
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
-
-                t1 = condition[0]
-                s_t0 = condition[1]
-
-                montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = t1, dt = an2_dt, n_x = an2_Npoints, N_montecarlo = N_montecarlo)
-
-                with Pool(n_jobs) as p:
-                    results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
-
-                # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
-                mean_R2 = np.mean([result['R2'] for result in results_model])
-                mean_s_R2 = np.mean([result['s_R2'] for result in results_model])
-                sum_square = np.mean([result['result'].sum_square for result in results_model])
-
-                DT = delta_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-                T2 = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-
-                # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
-                std_R2 = np.std([result['R2'] for result in results_model])
-                std_s_R2 = np.std([result['s_R2'] for result in results_model])
-                std_sum_square = np.std([result['result'].sum_square for result in results_model])
-
-                s_DT = delta_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-                s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-
-                # Add the mean values to the dataframe
-                df_values.loc[ind] = [t1, s_t0, sum_square, mean_R2, mean_s_R2, DT, T2]
-
-                # Add the standard deviation
-                df_stdvalues.loc[ind] = [t1, s_t0, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
-
-            x = df_values['t1'].unique()
-            y = df_values['s_t0'].unique()
-
-            z_rmse = np.empty((len(y), len(x)))
-            z_r2 = np.empty((len(y), len(x)))
-            z_t2 = np.empty((len(y), len(x)))
-            z_s_r2 = np.empty((len(y), len(x)))
-            z_s_t2 = np.empty((len(y), len(x)))
-
-            for i, t1 in enumerate(x):
-                for j, s_t0 in enumerate(y):
-                    row = df_values[(df_values['t1'] == t1) & (df_values['s_t0'] == s_t0)]
-                    row_s = df_stdvalues[(df_stdvalues['t1'] == t1) & (df_stdvalues['s_t0'] == s_t0)]
-                    if len(row) > 0:
-                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/an2_Npoints)
-                        z_r2[j, i] = row['Resistance'].values[0]
-                        z_t2[j, i] = row['Temperature'].values[0]
-                        z_s_r2[j, i] = row_s['Resistance'].values[0]
-                        z_s_t2[j, i] = row_s['Temperature'].values[0]
-                    else:
-                        z_rmse[j, i] = np.nan
-                        z_r2[j, i] = np.nan
-                        z_t2[j, i] = np.nan
-                        z_s_r2[j, i] = np.nan
-                        z_s_t2[j, i] = np.nan
-
-            if PLOTRMSE:
-                # RMSE plot
-                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE', showscale=False)])
-                fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='t1 [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
-                html_report += fig.to_html(full_html=False)
-
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2', showscale=False), row=1, col=1)
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2', showscale=False), row=1, col=2)
-
-            fig.update_scenes(xaxis_title='t1 [s]', 
-                              yaxis_title='s_t0 [s]', 
-                              zaxis_title='Value',
-                              yaxis_type='log')
-
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
-            fig.update_scenes(xaxis_title='t1 [s]', 
-                              yaxis_title='s_t0 [s]', 
-                              zaxis_title='Value',
-                              yaxis_type='log')
-            
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
-
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-            if PLOTSAVE:
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
-                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.write_image(fsave + '/a2_RMSE.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
-                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.write_image(fsave + '/a2_R2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
-                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.write_image(fsave + '/a2_T2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_r2))
-                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.update_layout(scene=dict(zaxis=dict(dtick=1, type='log')))
-                heatmap_fig.write_image(fsave + '/a2_sR2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_t2))
-                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='t1 [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.update_layout(scene=dict(zaxis=dict(dtick=1, type='log')))
-                heatmap_fig.write_image(fsave + '/a2_sT2.pdf')
-
-        elif an == 3: ###### Analysis 3: Number of points x Initial time uncertainty ######
-            html_report += f"<h3>Analysis 3: Number of points x Uncertainty of initial time</h3>\n"
-            html_report += f"<p>Time between measurements: {an3_dt} s</p>\n"
-            html_report += f"<p>Initial time: {an3_t1} s</p>\n"
-
-            conditions = product(an3_Npoints, an3_s_t0)
-            conditions = [condition for condition in conditions if condition[0]*an3_dt <= x_og[-1]]
-
-            df_values = pd.DataFrame(columns=['Npoints','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
-            df_stdvalues = pd.DataFrame(columns=['Npoints','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
-
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
-
-                Npoints = condition[0]
-                s_t0 = condition[1]
-
-                montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = an3_t1, dt = an3_dt, n_x = Npoints, N_montecarlo = N_montecarlo)
-
-                with Pool(n_jobs) as p:
-                    results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
-
-                # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
-                mean_R2 = np.mean([result['R2'] for result in results_model])
-                mean_s_R2 = np.mean([result['s_R2'] for result in results_model])
-                sum_square = np.mean([result['result'].sum_square for result in results_model])
-
-                DT = delta_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-                T2 = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-
-                # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
-                std_R2 = np.std([result['R2'] for result in results_model])
-                std_s_R2 = np.std([result['s_R2'] for result in results_model])
-                std_sum_square = np.std([result['result'].sum_square for result in results_model])
-
-                s_DT = delta_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-                s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-
-                # Add the mean values to the dataframe
-                df_values.loc[ind] = [Npoints, s_t0, sum_square, mean_R2, mean_s_R2, DT, T2]
-
-                # Add the standard deviation
-                df_stdvalues.loc[ind] = [Npoints, s_t0, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
-
-            x = df_values['Npoints'].unique()
-            y = df_values['s_t0'].unique()
-
-            z_rmse = np.empty((len(y), len(x)))
-            z_r2 = np.empty((len(y), len(x)))
-            z_t2 = np.empty((len(y), len(x)))
-            z_s_r2 = np.empty((len(y), len(x)))
-            z_s_t2 = np.empty((len(y), len(x)))
-
-            for i, Npoints in enumerate(x):
-                for j, s_t0 in enumerate(y):
-                    row = df_values[(df_values['Npoints'] == Npoints) & (df_values['s_t0'] == s_t0)]
-                    row_s = df_stdvalues[(df_stdvalues['Npoints'] == Npoints) & (df_stdvalues['s_t0'] == s_t0)]
-                    if len(row) > 0:
-                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/Npoints)
-                        z_r2[j, i] = row['Resistance'].values[0]
-                        z_t2[j, i] = row['Temperature'].values[0]
-                        z_s_r2[j, i] = row_s['Resistance'].values[0]
-                        z_s_t2[j, i] = row_s['Temperature'].values[0]
-                    else:
-                        z_rmse[j, i] = np.nan
-                        z_r2[j, i] = np.nan
-                        z_t2[j, i] = np.nan
-                        z_s_r2[j, i] = np.nan
-                        z_s_t2[j, i] = np.nan
-
-            if PLOTRMSE:
-                # RMSE plot
-                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE', showscale=False)])
-                fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='Npoints', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
-                html_report += fig.to_html(full_html=False)
-
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2', showscale=False), row=1, col=1)
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2', showscale=False), row=1, col=2)
-
-            fig.update_scenes(xaxis_title='Npoints', 
-                              yaxis_title='s_t0 [s]', 
-                              zaxis_title='Value',
-                              yaxis_type='log')
-
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2', showscale=False), row=1, col=1)
-            fig.update_scenes(xaxis_title='Npoints', 
-                              yaxis_title='s_t0 [s]', 
-                              zaxis_title='Value',
-                              yaxis_type='log')
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2', showscale=False), row=1, col=2)
-
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-            if PLOTSAVE:
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
-                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.write_image(fsave + '/a3_RMSE.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
-                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.write_image(fsave + '/a3_R2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
-                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.write_image(fsave + '/a3_T2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_r2))
-                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.update_layout(scene=dict(zaxis=dict(dtick=1, type='log')))
-                heatmap_fig.write_image(fsave + '/a3_sR2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_t2))
-                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='Npoints', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.update_layout(scene=dict(zaxis=dict(dtick=1, type='log')))
-                heatmap_fig.write_image(fsave + '/a3_sT2.pdf')
- 
-        elif an == 4: ###### Analysis 4: Time between points x Uncertainty of initial time ######
-            html_report += f"<h3>Analysis 4: Time between points x Uncertainty of initial time</h3>\n"
-            html_report += f"<p>Number of points: {an4_Npoints}</p>\n"
-            html_report += f"<p>Initial time: {an4_t1} s</p>\n"
-
-            conditions = product(an4_dt, an4_s_t0)
-            conditions = [condition for condition in conditions if condition[0]*an4_Npoints <= x_og[-1]]
-
-            df_values = pd.DataFrame(columns=['dt','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature', 'Temperature'])
-            df_stdvalues = pd.DataFrame(columns=['dt','s_t0','SSE', 'Resistance', 'Estimation uncertainty', 'Delta Temperature','Temperature'])
-
-            for (ind,condition) in enumerate(tqdm.tqdm(conditions, desc = 'Condition', position=1, leave = True)):
-
-                dt = condition[0]
-                s_t0 = condition[1]
-
-                montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = an4_t1, dt = dt, n_x = an4_Npoints, N_montecarlo = N_montecarlo)
-
-                with Pool(n_jobs) as p:
-                    results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
-
-                # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
-                mean_R2 = np.mean([result['R2'] for result in results_model])
-                mean_s_R2 = np.mean([result['s_R2'] for result in results_model])
-                sum_square = np.mean([result['result'].sum_square for result in results_model])
-
-                DT = delta_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-                T2 = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
-
-                # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
-                std_R2 = np.std([result['R2'] for result in results_model])
-                std_s_R2 = np.std([result['s_R2'] for result in results_model])
-                std_sum_square = np.std([result['result'].sum_square for result in results_model])
-
-                s_DT = delta_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-                s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
-
-                # Add the mean values to the dataframe
-                df_values.loc[ind] = [dt, s_t0, sum_square, mean_R2, mean_s_R2, DT, T2]
-
-                # Add the standard deviation
-                df_stdvalues.loc[ind] = [dt, s_t0, std_sum_square, std_R2, std_s_R2, s_DT, s_T2]
-
-            x = df_values['dt'].unique()
-            y = df_values['s_t0'].unique()
-
-            z_rmse = np.empty((len(y), len(x)))
-            z_r2 = np.empty((len(y), len(x)))
-            z_t2 = np.empty((len(y), len(x)))
-            z_s_r2 = np.empty((len(y), len(x)))
-            z_s_t2 = np.empty((len(y), len(x)))
-
-            for i, dt in enumerate(x):
-                for j, s_t0 in enumerate(y):
-                    row = df_values[(df_values['dt'] == dt) & (df_values['s_t0'] == s_t0)]
-                    row_s = df_stdvalues[(df_stdvalues['dt'] == dt) & (df_stdvalues['s_t0'] == s_t0)]
-                    if len(row) > 0:
-                        z_rmse[j, i] = np.sqrt(row['SSE'].values[0]/an4_Npoints)
-                        z_r2[j, i] = row['Resistance'].values[0]
-                        z_t2[j, i] = row['Temperature'].values[0]
-                        z_s_r2[j, i] = row_s['Resistance'].values[0]
-                        z_s_t2[j, i] = row_s['Temperature'].values[0]
-                    else:
-                        z_rmse[j, i] = np.nan
-                        z_r2[j, i] = np.nan
-                        z_t2[j, i] = np.nan
-                        z_s_r2[j, i] = np.nan
-                        z_s_t2[j, i] = np.nan
-
-            if PLOTRMSE:
-                # RMSE plot
-                fig = go.Figure(data=[go.Surface(x=x, y=y, z=z_rmse, name='RMSE',showscale=False)])
-                fig.update_layout(title='RMSE [Ω]', scene = dict(xaxis_title='dt [s]', yaxis_title='s_t0 [s]', zaxis_title='Value', yaxis_type='log'))
-                html_report += fig.to_html(full_html=False)
-
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=['Resistance [Ω]', 'Temperature [°C]'])
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_r2, name='R2',showscale=False), row=1, col=1)
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_t2, name='T2',showscale=False), row=1, col=2)
-
-            fig.update_scenes(xaxis_title='dt [s]', 
-                              yaxis_title='s_t0 [s]', 
-                              zaxis_title='Value',
-                              yaxis_type='log')
-
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-            # Create the figure object
-            fig = make_subplots(rows=1, cols=2, 
-                                specs=[[{"type": "surface"},{"type": "surface"}]],
-                                subplot_titles=("Resistance uncertainty [Ω]", "Temperature uncertainty [°C]"))
-
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_r2, name='s_R2'), row=1, col=1)
-            fig.update_scenes(xaxis_title='dt [s]', 
-                              yaxis_title='s_t0 [s]', 
-                              zaxis_title='Value',
-                              yaxis_type='log')
-            fig.add_trace(go.Surface(x=x, y=y, z=z_s_t2, name='s_T2'), row=1, col=2)
-
-            # Add the plot to the HTML report
-            html_report += fig.to_html(full_html=False)
-
-            if PLOTSAVE:
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse))
-                heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.write_image(fsave + '/a4_RMSE.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2))
-                heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.write_image(fsave + '/a4_R2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2))
-                heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.write_image(fsave + '/a4_T2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_r2))
-                heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.update_layout(scene=dict(zaxis=dict(dtick=1, type='log')))
-                heatmap_fig.write_image(fsave + '/a4_sR2.pdf')
-                heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_t2))
-                heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title='dt [s]', yaxis_title='t0 uncertainty [s]', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
-                heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-                heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey', type="log")
-                heatmap_fig.update_layout(scene=dict(zaxis=dict(dtick=1, type='log')))
-                heatmap_fig.write_image(fsave + '/a4_sT2.pdf')
+    for an in tqdm.tqdm(analyses, desc = 'Analysis', position=0, leave = True):
+        results = montecarlo_analysis(an, x_og, y_og)
+        var_params = [key for key in an if len(an[key]) > 1]
+
+        html_report += plot_html_results(results, var_params[0], var_params[1], plot_RMSE=PLOTRMSE)
+        
+        if PLOTSAVE:
+            save_heatmap_plots(results, var_params[0], var_params[1], plot_RMSE=PLOTRMSE, fsave=fsave, prefix=f"An_{var_params[0]}_{var_params[1]}")
         
     if HTMLSAVE:
         # Save the HTML report to a file
