@@ -232,11 +232,11 @@ def plot_html_results(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool =
     y = results[varY].unique()
     y.sort()
 
-    z_rmse = np.empty((len(y), len(x)))
-    z_r2 = np.empty((len(y), len(x)))
-    z_t2 = np.empty((len(y), len(x)))
-    z_s_r2 = np.empty((len(y), len(x)))
-    z_s_t2 = np.empty((len(y), len(x)))
+    z_rmse = np.empty((len(x), len(y)))
+    z_r2 = np.empty((len(x), len(y)))
+    z_t2 = np.empty((len(x), len(y)))
+    z_s_r2 = np.empty((len(x), len(y)))
+    z_s_t2 = np.empty((len(x), len(y)))
 
     for i, x_val in enumerate(x):
         for j, y_val in enumerate(y):
@@ -324,11 +324,11 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
     y = results[varY].unique()
     y.sort()
 
-    z_rmse = np.empty((len(y), len(x)))
-    z_r2 = np.empty((len(y), len(x)))
-    z_t2 = np.empty((len(y), len(x)))
-    z_s_r2 = np.empty((len(y), len(x)))
-    z_s_t2 = np.empty((len(y), len(x)))
+    z_rmse = np.empty((len(x), len(y)))
+    z_r2 = np.empty((len(x), len(y)))
+    z_t2 = np.empty((len(x), len(y)))
+    z_s_r2 = np.empty((len(x), len(y)))
+    z_s_t2 = np.empty((len(x), len(y)))
 
     for i, x_val in enumerate(x):
         for j, y_val in enumerate(y):
