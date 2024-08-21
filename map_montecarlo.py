@@ -248,7 +248,7 @@ def plot_html_results(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool =
                 z_s_r2[i,j] = np.nan
                 z_s_t2[i,j] = np.nan
             else:
-                z_rmse[i,j] = np.sqrt(results.loc[ind, 'mean_SSE'].values[0]/(results.loc[ind, 'N_points'].values[0])) # SSE to RMSE
+                z_rmse[i,j] = np.sqrt(results.loc[ind, 'mean_SSE'].values[0]/(results.loc[ind, 'Npoints'].values[0])) # SSE to RMSE
                 z_r2[i,j] = results.loc[ind, 'mean_Resistance'].values[0]
                 z_t2[i,j] = results.loc[ind, 'mean_Temperature'].values[0]
                 z_s_r2[i,j] = results.loc[ind, 'std_Resistance'].values[0]
@@ -340,7 +340,7 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
                 z_s_r2[i,j] = np.nan
                 z_s_t2[i,j] = np.nan
             else:
-                z_rmse[i,j] = np.sqrt(results.loc[ind, 'mean_SSE'].values[0]/(results.loc[ind, 'N_points'].values[0])) # SSE to RMSE
+                z_rmse[i,j] = np.sqrt(results.loc[ind, 'mean_SSE'].values[0]/(results.loc[ind, 'Npoints'].values[0])) # SSE to RMSE
                 z_r2[i,j] = results.loc[ind, 'mean_Resistance'].values[0]
                 z_t2[i,j] = results.loc[ind, 'mean_Temperature'].values[0]
                 z_s_r2[i,j] = results.loc[ind, 'std_Resistance'].values[0]
