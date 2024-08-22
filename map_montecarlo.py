@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.express as px
 import tqdm
@@ -82,7 +83,7 @@ analyses.append({
 analyses.append({
     'dt': [8],
     'Npoints': [3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
-    't1': 4,
+    't1': [4],
     's_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1]
     })
 
@@ -316,7 +317,7 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
     
     if log_z is None:
         log_z = [False, False, False, False, False]
-    if not plot_RMSE:
+    if not plot_RMSE and len(log_z) == 4:
         log_z = [False] + log_z
     
     x = results[varX].unique()
@@ -349,6 +350,7 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
     if plot_RMSE:
         if log_z[0]:
             ticks, logticks = get_log_ticks(np.nanmin(z_rmse), np.nanmax(z_rmse))
+            text = np.vectorize("{:.1e}".format)(z_rmse).tolist()
             z_rmse = np.log(z_rmse)
             colorbar = dict(title='RMSE [Ω]',
                             tickmode="array",
@@ -356,8 +358,9 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
                             ticktext=logticks.astype(str),
                             ticks="outside")
         else:
+            text = np.vectorize("{:.2g}".format)(z_rmse).tolist()
             colorbar = dict(title='RMSE [Ω]')
-        heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_rmse, colorbar=colorbar))
+        heatmap_fig = go.Figure(data=go.Heatmap(x=y, y=x, z=z_rmse.tolist(), colorbar=colorbar, text=text, texttemplate="%{text}"))
         heatmap_fig.update_layout(title='RMSE [Ω]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
         heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
         heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
@@ -365,12 +368,12 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
             heatmap_fig.update_xaxes(type='log')
         if log_y:
             heatmap_fig.update_yaxes(type='log')
-        if log_z[0]:
-            heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_rmse), cmax=np.nanmax(z_rmse))
+        heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_rmse), cmax=np.nanmax(z_rmse))
         heatmap_fig.write_image(fsave + '/' + prefix + '_RMSE.pdf')
 
     if log_z[1]:
         ticks, logticks = get_log_ticks(np.nanmin(z_r2), np.nanmax(z_r2))
+        text = np.vectorize("{:.1e}".format)(z_r2).tolist()
         z_r2 = np.log(z_r2)
         colorbar = dict(title='Resistance [Ω]',
                         tickmode="array",
@@ -379,7 +382,8 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
                         ticks="outside")
     else:    
         colorbar = dict(title='Resistance [Ω]')
-    heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_r2, colorbar=colorbar))
+        text = np.vectorize("{:.2g}".format)(z_r2).tolist()
+    heatmap_fig = go.Figure(data=go.Heatmap(x=y, y=x, z=z_s_t2, colorbar=colorbar, text=text, texttemplate="%{text}", aspect="auto"))
     heatmap_fig.update_layout(title='Resistance [Ω]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
     heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
     heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
@@ -387,12 +391,12 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
         heatmap_fig.update_xaxes(type='log')
     if log_y:
         heatmap_fig.update_yaxes(type='log')
-    if log_z[1]:
-        heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_r2), cmax=np.nanmax(z_r2))
+    heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_r2), cmax=np.nanmax(z_r2))
     heatmap_fig.write_image(fsave + '/' + prefix + '_R2.pdf')
 
     if log_z[2]:
         ticks, logticks = get_log_ticks(np.nanmin(z_t2), np.nanmax(z_t2))
+        text = np.vectorize("{:.1e}".format)(z_t2).tolist()
         z_t2 = np.log(z_t2)
         colorbar = dict(title='Temperature [°C]',
                         tickmode="array",
@@ -401,7 +405,8 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
                         ticks="outside")
     else:
         colorbar = dict(title='Temperature [°C]')
-    heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_t2, colorbar=colorbar))
+        text = np.vectorize("{:.2g}".format)(z_t2).tolist()
+    heatmap_fig = go.Figure(data=go.Heatmap(x=y, y=x, z=z_s_t2, colorbar=colorbar, text=text, texttemplate="%{text}", aspect="auto"))
     heatmap_fig.update_layout(title='Temperature [°C]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
     heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
     heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
@@ -409,12 +414,12 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
         heatmap_fig.update_xaxes(type='log')
     if log_y:
         heatmap_fig.update_yaxes(type='log')
-    if log_z[2]:
-        heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_t2), cmax=np.nanmax(z_t2))
+    heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_t2), cmax=np.nanmax(z_t2))
     heatmap_fig.write_image(fsave + '/' + prefix + '_T2.pdf')
 
     if log_z[3]:
         ticks, logticks = get_log_ticks(np.nanmin(z_s_r2), np.nanmax(z_s_r2))
+        text = np.vectorize("{:.1e}".format)(z_s_r2).tolist()
         z_s_r2 = np.log(z_s_r2)
         colorbar = dict(title='Resistance uncertainty [Ω]',
                         tickmode="array",
@@ -423,7 +428,8 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
                         ticks="outside")
     else:
         colorbar = dict(title='Resistance uncertainty [Ω]')
-    heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_r2, colorbar=colorbar))
+        text = np.vectorize("{:.2g}".format)(z_s_r2).tolist()
+    heatmap_fig = go.Figure(data=go.Heatmap(x=y, y=x, z=z_s_t2, colorbar=colorbar, text=text, texttemplate="%{text}", aspect="auto"))
     heatmap_fig.update_layout(title='Resistance uncertainty [Ω]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
     heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
     heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
@@ -431,12 +437,12 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
         heatmap_fig.update_xaxes(type='log')
     if log_y:
         heatmap_fig.update_yaxes(type='log')
-    if log_z[3]:
-        heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_s_r2), cmax=np.nanmax(z_s_r2))
+    heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_s_r2), cmax=np.nanmax(z_s_r2))
     heatmap_fig.write_image(fsave + '/' + prefix + '_sR2.pdf')
     
     if log_z[4]:
         ticks, logticks = get_log_ticks(np.nanmin(z_s_t2), np.nanmax(z_s_t2))
+        text = np.vectorize("{:.1e}".format)(z_s_t2).tolist()
         z_s_t2 = np.log10(z_s_t2)
         colorbar = dict(title='Temperature uncertainty [°C]',
                         tickmode="array",
@@ -445,17 +451,17 @@ def save_heatmap_plots(results:pd.DataFrame, varX:str, varY:str, plot_RMSE:bool 
                         ticks="outside")
     else:
         colorbar = dict(title='Temperature uncertainty [°C]')
-    heatmap_fig = go.Figure(data=go.Heatmap(x=x, y=y, z=z_s_t2, colorbar=colorbar))
+        text = np.vectorize("{:.2g}".format)(z_s_t2).tolist()
+    heatmap_fig = go.Figure(data=go.Heatmap(x=y, y=x, z=z_s_t2, colorbar=colorbar, text=text, texttemplate="%{text}", aspect="auto"))
     heatmap_fig.update_layout(title='Temperature uncertainty [°C]', xaxis_title=varNames[varX], yaxis_title=varNames[varY], paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_family = 'Times New Roman', font_color = 'black')
     heatmap_fig.update_xaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
     heatmap_fig.update_yaxes(mirror=True, ticks='outside', showline=True, linecolor='black', gridcolor='lightgrey')
-    heatmap_fig.write_image(fsave + '/' + prefix + '_sT2.pdf')
     if log_x:
         heatmap_fig.update_xaxes(type='log')
     if log_y:
         heatmap_fig.update_yaxes(type='log')
-    if log_z[4]:
-        heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_s_t2), cmax=np.nanmax(z_s_t2))
+    heatmap_fig.update_coloraxes(colorscale='Turbo', cmin=np.nanmin(z_s_t2), cmax=np.nanmax(z_s_t2))
+    heatmap_fig.write_image(fsave + '/' + prefix + '_sT2.pdf')
 
 if __name__ == '__main__':
     # Parse the arguments
@@ -534,6 +540,7 @@ if __name__ == '__main__':
 
     n_jobs = os.cpu_count()
 
+    allresults = []
     for an in tqdm.tqdm(analyses, desc = 'Analysis', position=0, leave = True):
         results = montecarlo_analysis(an, x_og, y_og)
         var_params = [key for key in an if len(an[key]) > 1]
@@ -541,9 +548,17 @@ if __name__ == '__main__':
         html_report += plot_html_results(results, var_params[0], var_params[1], plot_RMSE=PLOTRMSE)
         
         if PLOTSAVE:
-            save_heatmap_plots(results, var_params[0], var_params[1], plot_RMSE=PLOTRMSE, fsave=fsave, prefix=f"An_{var_params[0]}_{var_params[1]}")
+            log_x = True if var_params[0] == 's_t0' else False
+            log_y = True if var_params[1] == 's_t0' else False
+            log_z = [False, False, False, True, True] if var_params[0] == 's_t0' or var_params[1] == 's_t0' else None
+            save_heatmap_plots(results, var_params[0], var_params[1], plot_RMSE=PLOTRMSE, fsave=fsave, prefix=f"An_{var_params[0]}_{var_params[1]}", log_x = False, log_y = False, log_z = None)
+        
+        allresults.append(results)
         
     if HTMLSAVE:
         # Save the HTML report to a file
         with open(fsave + "/report_Map_Montecarlo.html", "w", encoding="utf-16") as file:
             file.write(html_report)
+
+    allresults = pd.concat(allresults)
+    allresults.to_csv(fsave + '/results.csv', index=False)
