@@ -474,6 +474,8 @@ if __name__ == '__main__':
     PLOTSAVE = args.PLOTSAVE
     HTMLSAVE = args.HTMLSAVE
 
+    PLOTSAVE = False
+
     # Check if the folder exists
     if not os.path.exists(fsave):
         # Create the folder
