@@ -18,15 +18,15 @@ if __name__ == '__main__':
 
     results = []
 
-    for N in tqdm(n_montecarlo, desc='Monte Carlo Convergence', position=0, leave=True):
-        for i in tqdm(range(n_tests), desc='Test', position=0, leave=True):
-            tcalc, _,_ = res_montecarlo_temp_calc(int(N))
+    for N in tqdm(n_montecarlo, desc='Monte Carlo Convergence', position=0, leave=False):
+        for i in tqdm(range(n_tests), desc='Test', position=1, leave=False):
+            tcalc, _,_ = res_montecarlo_temp_calc(int(N), parallel=True)
             tcalc['N'] = N
             tcalc['type'] = 'calc'
             tcalc['test'] = i
             results.append(tcalc)
 
-            tmonte, _,_ = res_montecarlo_temp_montecarlo(int(N))
+            tmonte, _,_ = res_montecarlo_temp_montecarlo(int(N), parallel=True)
             tmonte['N'] = N
             tmonte['type'] = 'monte carlo'
             tmonte['test'] = i

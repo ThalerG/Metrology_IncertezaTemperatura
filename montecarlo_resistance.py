@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import os
 import warnings
 import argparse
+from multiprocessing import Pool
+import functools
 
 # Create the parser
 parser = argparse.ArgumentParser(description='Script for performing Monte Carlo simulations and analysis of the winding temperature of a motor.')
@@ -66,7 +68,7 @@ def process_montecarlo(xy, s_x, s_y, model):
                 initial_params = [1]*(model[1]+1)
         elif model[0] == 'exp':
             initial_params = [17.472,2.06,-0.0197]
-        model = generate_estimation_models(type = model[0], degree=model[1], params=params)
+        model = generate_estimation_models(type = model[0], degree=model[1])
 
     x = xy[0]
     y = xy[1]
@@ -107,16 +109,21 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2
 
     return montecarlo_matrix_xy
 
-def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarray, model = ('exp',0), N_montecarlo = 200):
+def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarray, model = ('exp',0), N_montecarlo = 200, parallel = False):
 
     montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = analysis_params['s_t0'], t1 = int(analysis_params['t1']), dt = int(analysis_params['dt']), n_x = int(analysis_params['Npoints']), N_montecarlo = N_montecarlo)
     
     estimation_model = generate_estimation_models(type = model[0], degree=model[1])
 
-    results_model = []
+    if parallel:
+        n_jobs = os.cpu_count()
+        with Pool(n_jobs) as p:
+            results_model = p.map(functools.partial(process_montecarlo, model=model, s_x=s_x, s_y=s_y), montecarlo_matrix_xy)
+    else:
+        results_model = []
 
-    for xy in tqdm(montecarlo_matrix_xy, desc='Monte Carlo Simulation', total=N_montecarlo):
-        results_model.append(process_montecarlo(xy, s_x, s_y, estimation_model))
+        for xy in tqdm(montecarlo_matrix_xy, desc='Monte Carlo Simulation', total=N_montecarlo, leave = False):
+            results_model.append(process_montecarlo(xy, s_x, s_y, estimation_model))
 
     # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
     mean_R2 = np.mean([result['R2'] for result in results_model])
@@ -133,14 +140,14 @@ def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarra
 
     return results
 
-def res_montecarlo_temp_calc(N_montecarlo = 200, model = ('exp',0)):
+def res_montecarlo_temp_calc(N_montecarlo = 200, model = ('exp',0), parallel = False):
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
 
     x_og = df['Time'].values
     y_og = df['Resistance'].values
 
-    results = montecarlo_analysis(analysis_param, x_og, y_og, model, N_montecarlo)
+    results = montecarlo_analysis(analysis_param, x_og, y_og, model, N_montecarlo, parallel=parallel)
 
     return results, x_og, y_og
 
@@ -195,3 +202,7 @@ if __name__ == '__main__':
 
         # Show the plot
         plt.show()
+
+    print(f"R2 Monte Carlo, T2 calculado")
+    print(f"R2: {results['mean_R2']} ± {results['std_R2']}")
+    print(f"T2: {results['mean_T2']} ± {results['std_T2']}")
