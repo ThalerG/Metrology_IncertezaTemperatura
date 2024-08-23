@@ -7,7 +7,7 @@ import os
 if __name__ == '__main__':
 
     n_tests = 10
-    fsave = 'Results'
+    fsave = 'Resultados'
 
     # Check if the folder exists
     if not os.path.exists(fsave):
@@ -24,12 +24,14 @@ if __name__ == '__main__':
             tcalc['N'] = N
             tcalc['type'] = 'calc'
             tcalc['test'] = i
+            del tcalc['parameters']
             results.append(tcalc)
 
             tmonte, _,_ = res_montecarlo_temp_montecarlo(int(N), parallel=True)
             tmonte['N'] = N
             tmonte['type'] = 'monte carlo'
             tmonte['test'] = i
+            del tmonte['parameters']
             results.append(tmonte)
 
     df = pd.DataFrame(results)
