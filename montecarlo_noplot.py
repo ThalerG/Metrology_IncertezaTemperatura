@@ -148,10 +148,8 @@ def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarra
         
     results_labels = ['mean_SSE', 'mean_Resistance', 'mean_EstimationUncertainty', 'mean_DeltaTemperature', 'mean_Temperature',
                       'std_SSE', 'std_Resistance', 'std_EstimationUncertainty', 'std_DeltaTemperature', 'std_Temperature']
-    
-    conditions.to_csv('Resultados/conditions.csv', index=False)
+    conditions.reset_index(drop=True, inplace=True)    
     results = pd.DataFrame(columns=results_labels, data=results_data)
-    results.to_csv('Resultados/results_noconditions.csv', index=False)
     results = pd.concat([conditions, results], axis=1)
 
     return results
