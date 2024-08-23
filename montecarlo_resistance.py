@@ -107,7 +107,7 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2
 
     return montecarlo_matrix_xy
 
-def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarray):    
+def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarray, model = ('exp',0), N_montecarlo = 200):
 
     montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = analysis_params['s_t0'], t1 = int(analysis_params['t1']), dt = int(analysis_params['dt']), n_x = int(analysis_params['Npoints']), N_montecarlo = N_montecarlo)
     
@@ -133,6 +133,17 @@ def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarra
 
     return results
 
+def res_montecarlo_temp_calc(N_montecarlo = 200, model = ('exp',0)):
+    file_path = "Dados/data.csv"
+    df = pd.read_csv(file_path)
+
+    x_og = df['Time'].values
+    y_og = df['Resistance'].values
+
+    results = montecarlo_analysis(analysis_param, x_og, y_og, model, N_montecarlo)
+
+    return results, x_og, y_og
+
 if __name__ == '__main__':
     # Parse the arguments
     args = parser.parse_args()
@@ -145,17 +156,10 @@ if __name__ == '__main__':
     if not os.path.exists(fsave):
         # Create the folder
         os.makedirs(fsave)
-    file_path = "Dados/data.csv"
-    df = pd.read_csv(file_path)
 
     model = ('exp',0)
 
-    x_og = df['Time'].values
-    y_og = df['Resistance'].values
-
-    n_jobs = os.cpu_count()
-
-    results = montecarlo_analysis(analysis_param, x_og, y_og)
+    results, x_og, y_og = res_montecarlo_temp_calc(N_montecarlo, model)
 
     # Extract the parameters from the results
     parameters = results['parameters']
@@ -191,7 +195,3 @@ if __name__ == '__main__':
 
         # Show the plot
         plt.show()
-    
-    print(f"R2 Monte Carlo, T2 calculado")
-    print(f"R2: {results['mean_R2']} ± {results['std_R2']}")
-    print(f"T2: {results['mean_T2']} ± {results['std_T2']}")
