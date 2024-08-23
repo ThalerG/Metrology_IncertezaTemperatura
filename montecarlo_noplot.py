@@ -118,8 +118,6 @@ def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarra
     ind = (conditions['t1'] >= x_og[0]) & ((conditions['t1'] + (conditions['Npoints']-1)*conditions['dt']) <= x_og[-1])
     conditions = conditions.loc[ind]
 
-    results_labels = ['mean_SSE', 'mean_Resistance', 'mean_EstimationUncertainty', 'mean_DeltaTemperature', 'mean_Temperature',
-                      'std_SSE', 'std_Resistance', 'std_EstimationUncertainty', 'std_DeltaTemperature', 'std_Temperature']
     results_data = []
 
     for k,row in tqdm.tqdm(conditions.iterrows(), desc = 'Condition', position=1, leave = True,  total=conditions.shape[0]):
@@ -148,7 +146,12 @@ def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarra
         results_data.append([mean_sum_square, mean_R2, mean_s_R2, DT, T2,
                              std_sum_square, std_R2, std_s_R2, s_DT, s_T2])
         
+    results_labels = ['mean_SSE', 'mean_Resistance', 'mean_EstimationUncertainty', 'mean_DeltaTemperature', 'mean_Temperature',
+                      'std_SSE', 'std_Resistance', 'std_EstimationUncertainty', 'std_DeltaTemperature', 'std_Temperature']
+    
+    conditions.to_csv('Resultados/conditions.csv', index=False)
     results = pd.DataFrame(columns=results_labels, data=results_data)
+    results.to_csv('Resultados/results_noconditions.csv', index=False)
     results = pd.concat([conditions, results], axis=1)
 
     return results
