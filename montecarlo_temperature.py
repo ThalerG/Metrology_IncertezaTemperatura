@@ -2,7 +2,6 @@ from fcn import *
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from multiprocessing import Pool
 import matplotlib.pyplot as plt
 import os
 import warnings
@@ -52,8 +51,8 @@ analysis_param = {
     's_t0': 1e-2
 }
 
-def process_montecarlo(xy, s_x, s_y, model):
-
+def process_montecarlo(xy, s_x, s_y, model, Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, s_Tamb1 = s_Tamb1, s_Tamb2 = s_Tamb2, s_R1 = s_R1):
+    
     if callable(model):
         initial_params = [17.472,2.06,-0.0197]
     else:
@@ -72,14 +71,16 @@ def process_montecarlo(xy, s_x, s_y, model):
 
     x = xy[0]
     y = xy[1]
+    Tamb_1 = Tamb_1 + np.random.normal(0, s_Tamb1)
+    Tamb_2 = Tamb_2 + np.random.normal(0, s_Tamb2)
+    R1 = R1 + np.random.normal(0, s_R1)
 
     params, _, _ = estimate_model_with_uncertainty(x, y, s_x, s_y, model=model, initial_params= initial_params,maxit = 1000000)
-    
-    s_x0 = np.sqrt(s_t0**2 + s_dt**2)
 
     R2 = model(params,0)
+    T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
 
-    return {'params': params, 'R2': R2}
+    return {'params': params, 'R2': R2, 'T2': T2}
 
 def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200):
     x_tot = np.linspace(t1, t1 + (n_x-1)*dt, n_x)
@@ -109,7 +110,7 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2
 
     return montecarlo_matrix_xy
 
-def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarray, model = ('exp',0), N_montecarlo = 200, parallel = False):
+def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarray, model: tuple = ('exp', 0), N_montecarlo: int = 200, parallel: bool = False): 
 
     montecarlo_matrix_xy = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = analysis_params['s_t0'], t1 = int(analysis_params['t1']), dt = int(analysis_params['dt']), n_x = int(analysis_params['Npoints']), N_montecarlo = N_montecarlo)
     
@@ -127,20 +128,23 @@ def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarra
 
     # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
     mean_R2 = np.mean([result['R2'] for result in results_model])
-    T2 = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
+    T2_MC = np.mean([result['T2'] for result in results_model])
+    T2_calc = final_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
 
     # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
     std_R2 = np.std([result['R2'] for result in results_model])
-    s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
+    s_T2_MC = np.std([result['T2'] for result in results_model])
+    s_T2_calc = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
 
     # Append results
     results = {'parameters': [result['params'] for result in results_model],
-               'mean_R2': mean_R2, 'std_R2': std_R2,
-               'mean_T2': T2, 'std_T2': s_T2}
+               'mean_R2': mean_R2, 'mean_T2_MC': T2_MC,
+               'std_R2': std_R2, 'std_T2_MC': s_T2_MC,
+               'mean_T2_calc': T2_calc, 'std_T2_calc': s_T2_calc}
 
     return results
 
-def res_montecarlo_temp_calc(N_montecarlo = 200, model = ('exp',0), parallel = False):
+def res_montecarlo_temp_montecarlo(N_montecarlo = 200, model = ('exp',0), parallel = False):
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
 
@@ -150,6 +154,7 @@ def res_montecarlo_temp_calc(N_montecarlo = 200, model = ('exp',0), parallel = F
     results = montecarlo_analysis(analysis_param, x_og, y_og, model, N_montecarlo, parallel=parallel)
 
     return results, x_og, y_og
+
 
 if __name__ == '__main__':
     # Parse the arguments
@@ -166,7 +171,7 @@ if __name__ == '__main__':
 
     model = ('exp',0)
 
-    results, x_og, y_og = res_montecarlo_temp_calc(N_montecarlo, model)
+    results, x_og, y_og = res_montecarlo_temp_montecarlo(N_montecarlo, model)
 
     # Extract the parameters from the results
     parameters = results['parameters']
@@ -175,6 +180,9 @@ if __name__ == '__main__':
         # Create a figure and axis for temperature subplot
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
 
+        R2_all =[]
+        T2_all = []
+
         # Plot each exponential line for resistance
         for params in parameters:
             x = np.linspace(0, max(x_og), 100)
@@ -182,6 +190,8 @@ if __name__ == '__main__':
             ax1.plot(x, R2, color='blue', alpha=0.01)
             T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
             ax2.plot(x, T2, color='red', alpha=0.01)
+            R2_all.append(R2[0])
+            T2_all.append(T2[0])
 
         x_tot = np.linspace(analysis_param['t1'], analysis_param['t1'] + (analysis_param['Npoints']-1)*analysis_param['dt'], analysis_param['Npoints']) 
         ind = np.isin(x_og, x_tot)
@@ -203,6 +213,6 @@ if __name__ == '__main__':
         # Show the plot
         plt.show()
 
-    print(f"R2 Monte Carlo, T2 calculado")
+    print(f"R2 Monte Carlo, T2 Monte Carlo")
     print(f"R2: {results['mean_R2']} ± {results['std_R2']}")
-    print(f"T2: {results['mean_T2']} ± {results['std_T2']}")
+    print(f"T2: {results['mean_T2_MC']} ± {results['std_T2_MC']}")
