@@ -30,21 +30,22 @@ def estimate_model_with_uncertainty(x: Union[np.ndarray, List[float]],
 
     '''
 
-    if model == 'lin':
-        def model(params, x):
-            return params[1] * x + params[0]
-        initial_params = [1.0, 1.0] if initial_params is None else initial_params
+    if not callable(model):
+        if model == 'lin':
+            def model(params, x):
+                return params[1] * x + params[0]
+            initial_params = [1.0, 1.0] if initial_params is None else initial_params
 
-    elif model == 'exp':
-        def model(params, x):
-            return params[0] + params[1] * np.exp(params[2] * x)
-        initial_params = [1.0, 1.0, 1.0] if initial_params is None else initial_params
+        elif model == 'exp':
+            def model(params, x):
+                return params[0] + params[1] * np.exp(params[2] * x)
+            initial_params = [1.0, 1.0, 1.0] if initial_params is None else initial_params
 
-    elif not callable(model):
-        raise ValueError("Model must be a callable function or 'lin' or 'exp'.")
-    
-    elif callable(model) and initial_params is None:
-        raise ValueError("Initial parameters must be provided when using a custom model.")
+        elif not callable(model):
+            raise ValueError("Model must be a callable function or 'lin' or 'exp'.")
+        
+        elif callable(model) and initial_params is None:
+            raise ValueError("Initial parameters must be provided when using a custom model.")
 
     # Define o modelo
     model = odr.Model(model)
