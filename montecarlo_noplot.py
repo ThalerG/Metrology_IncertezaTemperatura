@@ -70,19 +70,10 @@ def process_montecarlo(xy, s_x, s_y, model):
     params, uncertainty, result = estimate_model_with_uncertainty(x, y, s_x, s_y, model=estimation_model, initial_params= initial_params,maxit = 1000000)
 
     estimated_model = generate_estimation_models(type = model[0], degree=model[1], params=params)
-    
-    s_x0 = np.sqrt(s_t0**2 + s_dt**2)
-    uncertainty_model = generate_estimation_uncertainty_models(params=params, s_params=uncertainty, s_x = s_x0, type=model[0], degree=model[1])
 
     R2 = estimated_model(0)
-    s_R2 = uncertainty_model(0)
 
-    DT = delta_temperature(R1, R2, Tamb_1, Tamb_2, k)
-    s_DT = delta_temperature_uncertainty(R1, R2, Tamb_1, Tamb_2, k, s_R1, s_R2, s_Tamb1, s_Tamb2)
-
-    T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
-    s_T2 = final_temperature_uncertainty(R1, R2, Tamb_1, Tamb_2, k, s_R1, s_R2, s_Tamb1, s_Tamb2)
-    return {'params': params, 'uncertainty': uncertainty, 'result': result, 'R2': R2, 's_R2': s_R2, 'T2': T2, 's_T2': s_T2, 'DT': DT, 's_DT': s_DT}
+    return {'params': params, 'uncertainty': uncertainty, 'result': result, 'R2': R2}
 
 def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = s_t0, t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200):
     x_tot = np.linspace(t1, t1 + (n_x-1)*dt, n_x)
@@ -128,7 +119,6 @@ def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarra
 
         # Calculate the mean values of R2, s_R2, T2, and s_T2 from results_model
         mean_R2 = np.mean([result['R2'] for result in results_model])
-        mean_s_R2 = np.mean([result['s_R2'] for result in results_model])
         mean_sum_square = np.mean([result['result'].sum_square for result in results_model])
 
         DT = delta_temperature(R1, mean_R2, Tamb_1, Tamb_2, k)
@@ -136,18 +126,17 @@ def montecarlo_analysis(analysis_params: dict, x_og: np.ndarray, y_og: np.ndarra
 
         # Calculate the standard deviation of R2, s_R2, T2, and s_T2 from results_model
         std_R2 = np.std([result['R2'] for result in results_model])
-        std_s_R2 = np.std([result['s_R2'] for result in results_model])
         std_sum_square = np.std([result['result'].sum_square for result in results_model])
 
         s_DT = delta_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
         s_T2 = final_temperature_uncertainty(R1, mean_R2, Tamb_1, Tamb_2, k, s_R1, std_R2, s_Tamb1, s_Tamb2)
 
         # Append results
-        results_data.append([mean_sum_square, mean_R2, mean_s_R2, DT, T2,
-                             std_sum_square, std_R2, std_s_R2, s_DT, s_T2])
+        results_data.append([mean_sum_square, mean_R2, DT, T2,
+                             std_sum_square, std_R2, s_DT, s_T2])
         
-    results_labels = ['mean_SSE', 'mean_Resistance', 'mean_EstimationUncertainty', 'mean_DeltaTemperature', 'mean_Temperature',
-                      'std_SSE', 'std_Resistance', 'std_EstimationUncertainty', 'std_DeltaTemperature', 'std_Temperature']
+    results_labels = ['mean_SSE', 'mean_Resistance', 'mean_DeltaTemperature', 'mean_Temperature',
+                      'std_SSE', 'std_Resistance', 'std_DeltaTemperature', 'std_Temperature']
     conditions.reset_index(drop=True, inplace=True)    
     results = pd.DataFrame(columns=results_labels, data=results_data)
     results = pd.concat([conditions, results], axis=1)
