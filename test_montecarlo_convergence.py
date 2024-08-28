@@ -13,7 +13,7 @@ if __name__ == '__main__':
         # Create the folder
         os.makedirs(fsave)
 
-    n_montecarlo = [1e1, 2e1, 3e1, 4e1, 5e1, 6e1, 7e1, 8e1, 9e1, 1e2, 2e2, 3e2, 4e2, 5e2, 6e2, 7e2, 8e2, 9e2, 1e3, 2e3, 5e3, 1e4, 2e4, 5e4, 1e5]
+    n_montecarlo = [1e1, 2e1, 3e1, 4e1, 5e1, 6e1, 7e1, 8e1, 9e1, 1e2, 2e2, 3e2, 4e2, 5e2, 6e2, 7e2, 8e2, 9e2, 1e3, 2e3, 5e3, 1e4, 2e4, 5e4]
 
     results = []
 
