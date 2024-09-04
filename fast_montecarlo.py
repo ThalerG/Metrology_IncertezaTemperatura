@@ -206,3 +206,7 @@ if __name__ == '__main__':
     print(f"R2: {mean_R2} ± {std_R2}")
     print(f"T2: {mean_T2} ± {std_T2}")
     print(f"Coverage Interval of 95% of T2: [{lower_bound}, {upper_bound}]")
+
+    # Save the results to a feather file
+    results = pd.DataFrame({'R2': R2_all, 'T2': T2_all, 'parameters': parameters})
+    results.to_feather(f'{fsave}/montecarlo_results.feather')
