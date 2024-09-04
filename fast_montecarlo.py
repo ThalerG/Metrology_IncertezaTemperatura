@@ -102,7 +102,7 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2
 
     return montecarlo_matrix_xy
 
-def res_montecarlo_temp_montecarlo(N_montecarlo = 200, model = ('exp',0), parallel = False):
+def res_montecarlo_temp_montecarlo(N_montecarlo = 200, model = ('exp',0), parallel = True):
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
 
@@ -114,7 +114,7 @@ def res_montecarlo_temp_montecarlo(N_montecarlo = 200, model = ('exp',0), parall
     if parallel:
         n_jobs = os.cpu_count()
         with Pool(n_jobs) as p:
-            results_model = p.map(functools.partial(fast_process_montecarlo), montecarlo_matrix)
+            results_model = list(tqdm(p.imap(functools.partial(fast_process_montecarlo), montecarlo_matrix), desc='Monte Carlo Simulation', total=N_montecarlo, leave = False))
     else:
         results_model = []
 
