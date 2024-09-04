@@ -7,11 +7,15 @@ import os
 import warnings
 from multiprocessing import Pool
 import functools
+import sys
 
 PLOT = True
 CALC_R2 = False
 
-N_montecarlo = int(1e6)
+if len(sys.argv) > 1:
+    N_montecarlo = int(sys.argv[1])
+else:
+    N_montecarlo = int(1e6)
 
 # Incertezas de medição:
 
@@ -116,8 +120,12 @@ def res_montecarlo_temp_montecarlo(N_montecarlo = 200, model = ('exp',0), parall
 
         for xy in tqdm(montecarlo_matrix, desc='Monte Carlo Simulation', total=N_montecarlo, leave = False):
             results_model.append(fast_process_montecarlo(xy))
+    
+    results = {'params': [result['params'] for result in results_model],
+               'R2': [result['R2'] for result in results_model],
+                'T2': [result['T2'] for result in results_model]}
 
-    return results_model, x_og, y_og
+    return results, x_og, y_og
 
 
 if __name__ == '__main__':
@@ -173,6 +181,28 @@ if __name__ == '__main__':
         # Show the plot
         plt.show()
 
+        # Create a histogram of T2 values
+        plt.hist(T2_all, bins=100, density=True, color='blue', edgecolor='black')
+
+        # Add labels and title to the histogram
+        plt.xlabel('Temperature [°C]')
+        plt.ylabel('Frequency')
+        plt.title('Histogram of T2')
+
+        # Show the histogram
+        plt.show()
+
+    mean_R2 = np.mean(R2_all)
+    std_R2 = np.std(R2_all)
+    mean_T2 = np.mean(T2_all)
+    std_T2 = np.std(T2_all)
+
+    # Calculate the coverage interval of 95% of T2
+    alpha = 0.05
+    lower_bound = np.percentile(T2_all, alpha/2 * 100)
+    upper_bound = np.percentile(T2_all, (1 - alpha/2) * 100)
+
     print(f"R2 Monte Carlo, T2 Monte Carlo")
-    print(f"R2: {results['mean_R2']} ± {results['std_R2']}")
-    print(f"T2: {results['mean_T2_MC']} ± {results['std_T2_MC']}")
+    print(f"R2: {mean_R2} ± {std_R2}")
+    print(f"T2: {mean_T2} ± {std_T2}")
+    print(f"Coverage Interval of 95% of T2: [{lower_bound}, {upper_bound}]")
