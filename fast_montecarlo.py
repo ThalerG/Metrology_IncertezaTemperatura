@@ -224,11 +224,9 @@ if __name__ == '__main__':
 
     # Save the conditions to a text file
     conditions = f"""
-    Incertezas de medição:
     s_dt = {s_dt}
     s_dR = {s_dR}
 
-    Condições de teste:
     R1 = {R1}
     Tamb_1 = {Tamb_1}
     Tamb_2 = {Tamb_2}
