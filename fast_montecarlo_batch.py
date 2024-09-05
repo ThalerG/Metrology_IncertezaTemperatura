@@ -8,14 +8,19 @@ import warnings
 from multiprocessing import Pool
 import functools
 import sys
+import argparse
 
 PLOT = True
 CALC_R2 = False
 
-if len(sys.argv) > 1:
-    N_montecarlo = int(sys.argv[1])
-else:
-    N_montecarlo = int(1e6)
+parser = argparse.ArgumentParser()
+parser.add_argument('--N_montecarlo', type=int, default=int(1e6), help='Number of Monte Carlo simulations')
+parser.add_argument('--fname', type=str, default='montecarlo_results', help='Name of file to save the results')
+
+args = parser.parse_args()
+
+N_montecarlo = args.N_montecarlo
+fname = args.fname
 
 # Incertezas de medição:
 
@@ -231,4 +236,28 @@ if __name__ == '__main__':
 
     # Save the results to a feather file
     results = pd.DataFrame({'R2': R2_all, 'T2': T2_all, 'parameters': parameters})
-    results.to_feather(f'{fsave}/montecarlo_results.feather')
+    results.to_feather(f'{fsave}/{fname}.feather')
+
+    # Save the conditions to a text file
+    conditions = f"""
+    Incertezas de medição:
+    s_dt = {s_dt}
+    s_dR = {s_dR}
+
+    Condições de teste:
+    R1 = {R1}
+    Tamb_1 = {Tamb_1}
+    Tamb_2 = {Tamb_2}
+    k = {k}
+    s_R1 = {s_R1}
+    s_Tamb1 = {s_Tamb1}
+    s_Tamb2 = {s_Tamb2}
+    s_t0 = {analysis_param['s_t0']}
+
+    N_points = {analysis_param['Npoints']}
+    dt = {analysis_param['dt']}
+    t1 = {analysis_param['t1']}
+    """
+
+    with open(f'{fsave}/{fname}.txt', 'w') as file:
+        file.write(conditions)
