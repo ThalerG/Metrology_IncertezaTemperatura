@@ -237,5 +237,5 @@ if __name__ == '__main__':
     t1 = {analysis_param['t1']}
     """
 
-    with open('/d:/Documentos/LIAE/Metrology_IncertezaTemperatura/fast_montecarlo_batch.txt', 'w') as file:
+    with open(f'{fsave}/{fname}.txt', 'w') as file:
         file.write(conditions)
