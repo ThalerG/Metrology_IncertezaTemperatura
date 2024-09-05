@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import re
 from fcn import *
+import os
+from scipy.signal import savgol_filter
 
 def extract_analysis_parameters(file_path):
     with open(file_path, 'r') as file:
@@ -39,8 +41,22 @@ def extract_analysis_parameters(file_path):
     return parameters
     
 
-def plot_singleIteration(dfFile,dfInfo):
+def plot_singleIteration(fname):
+    """
+    Plots the results of a single iteration of Monte Carlo simulation.
+    Parameters:
+    - fname (str): The name of the file containing the simulation results. The dataframe file should be in the 'Resultados' folder and have the extension '.feather'. 
+                   The information file should have the same name and be in the same folder, but with the extension '.txt'.
+    Returns:
+    - fig (matplotlib.figure.Figure): The generated figure object.
+    """
 
+    # Check if both the feather and txt files exist
+    if not os.path.exists(f"Resultados/{fname}.feather") or not os.path.exists(f"Resultados/{fname}.txt"):
+        raise FileNotFoundError("The feather or txt file does not exist.")
+
+    dfFile = f"Resultados/{fname}.feather"
+    dfInfo = f"Resultados/{fname}.txt"
     df_og = pd.read_csv("Dados/data.csv")
 
     x_og = df_og['Time'].values
@@ -60,7 +76,6 @@ def plot_singleIteration(dfFile,dfInfo):
     # Create a figure and axis for temperature subplot
     fig, ((ax1, ax2), ax) = plt.subplots(2, 2, figsize=(8, 6))
 
-    R2_all = data['R2'].values
     T2_all = data['T2'].values
 
     parameters = parameters[0:1000]
@@ -110,7 +125,10 @@ def plot_singleIteration(dfFile,dfInfo):
     ax3_freq.set_ylabel('Frequency')
 
     # Plot the PDF of Temperature
-    n, bins, patches = ax3.hist(T2_all, bins=100, edgecolor='C0', alpha=0, density=True, label='_nolegend_', facecolor="none")
+    n, bins, patches = ax3.hist(T2_all, bins=1000, edgecolor='C0', alpha=0, density=True, label='_nolegend_', facecolor="none")
+    n_filt = 10
+    n = np.convolve(n, np.ones(n_filt)/n_filt, mode='valid')
+    bins = bins[n_filt//2:-n_filt//2+1]
     ax3.plot((bins[:-1] + bins[1:]) / 2, n, color='C2', label = 'Probability Density Function')
     ax3.set_xlabel('Temperature [°C]')
     ax3.set_ylabel('Probability Density Function')
@@ -129,8 +147,16 @@ def plot_singleIteration(dfFile,dfInfo):
 
     plt.tight_layout()
 
-    # Show the plot
-    plt.show()
+    return fig
+
 
 if __name__ == '__main__':
-    plot_singleIteration("Resultados/analise1.feather","Resultados/analise1.txt")
+    fname = "analise3"
+    fsave = "MC_narrowPoints"
+
+    fig = plot_singleIteration(fname)
+
+    if not os.path.exists("Gráficos"):
+        os.makedirs("Gráficos")
+
+    fig.savefig(f"Gráficos/{fsave}.pdf")
