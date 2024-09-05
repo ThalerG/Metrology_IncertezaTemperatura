@@ -10,7 +10,7 @@ import functools
 import sys
 import argparse
 
-PLOT = True
+PLOT = False
 CALC_R2 = False
 
 parser = argparse.ArgumentParser()
@@ -52,7 +52,7 @@ analysis_param = {
     'dt': 2,
     'Npoints': 19,
     't1': 4,
-    's_t0': 1e-2
+    's_t0': 1e-1
 }
 
 def exp_model(params, x):
@@ -149,12 +149,12 @@ if __name__ == '__main__':
     # Extract the parameters from the results
     parameters = results['params']
 
+    R2_all =[]
+    T2_all = []
+
     if PLOT:
         # Create a figure and axis for temperature subplot
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
-
-        R2_all =[]
-        T2_all = []
 
         # Plot each exponential line for resistance
         for params in parameters:
@@ -196,6 +196,12 @@ if __name__ == '__main__':
 
         # Show the histogram
         plt.show()
+    else:
+        for params in parameters:
+            R2 = generate_estimation_models(type='exp', degree=0, params=params)(0)
+            T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
+            R2_all.append(R2)
+            T2_all.append(T2)
 
     mean_R2 = np.mean(R2_all)
     std_R2 = np.std(R2_all)
