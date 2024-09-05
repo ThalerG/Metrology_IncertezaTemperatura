@@ -102,7 +102,7 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2
 
     montecarlo_matrix_R1 = R1 + np.random.normal(0, s_R1, (1,N_montecarlo))
 
-    n_per_batch = 10
+    n_per_batch = 100
     n_batches = np.ceil(N_montecarlo/n_per_batch)
 
     montecarlo_matrix_x = np.array_split(montecarlo_matrix_x.T, n_batches, axis=0)
@@ -115,7 +115,7 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2
 
     return montecarlo_matrix_xy
 
-def res_montecarlo_temp_montecarlo(N_montecarlo = 200, model = ('exp',0), parallel = True):
+def res_montecarlo_temp_montecarlo(N_montecarlo = 200, parallel = True):
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
 
@@ -154,7 +154,7 @@ if __name__ == '__main__':
 
     model = ('exp',0)
 
-    results, x_og, y_og = res_montecarlo_temp_montecarlo(N_montecarlo, model)
+    results, x_og, y_og = res_montecarlo_temp_montecarlo(N_montecarlo)
 
     # Extract the parameters from the results
     parameters = results['params']
