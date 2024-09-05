@@ -10,7 +10,7 @@ import functools
 import sys
 import argparse
 
-PLOT = True
+PLOT = False
 CALC_R2 = False
 
 parser = argparse.ArgumentParser()
@@ -38,8 +38,8 @@ k = 234.5 # Recíproco do coeficiente de temperatura do resistor
 alpha = 1/(k+Tamb_1) # Coeficiente de temperatura do resistor
 
 s_R1 = s_dR # Incerteza da medição de resistência no início do teste
-s_Tamb1 = 0.1 # Incerteza da medição de temperatura no início do teste
-s_Tamb2 = 0.1 # Incerteza da medição de temperatura no final do teste
+s_Tamb1 = 0.2 # Incerteza da medição de temperatura no início do teste
+s_Tamb2 = 0.2 # Incerteza da medição de temperatura no final do teste
 
 # s_x = np.sqrt(s_t0**2 + s_dt**2)
 s_x = s_dt
@@ -50,8 +50,8 @@ initial_params = [17.472,2.06,-0.0197]
 ###### Análise 
 analysis_param = {
     'dt': 2,
-    'Npoints': 3,
-    't1': 20,
+    'Npoints': 19,
+    't1': 4,
     's_t0': 1e-2
 }
 
