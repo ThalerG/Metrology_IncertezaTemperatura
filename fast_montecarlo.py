@@ -50,7 +50,7 @@ initial_params = [17.472,2.06,-0.0197]
 ###### Análise 
 analysis_param = {
     'dt': 2,
-    'Npoints': 19,
+    'Npoints': 3,
     't1': 4,
     's_t0': 1e-1
 }
@@ -239,7 +239,13 @@ if __name__ == '__main__':
     N_points = {analysis_param['Npoints']}
     dt = {analysis_param['dt']}
     t1 = {analysis_param['t1']}
-    """
+
+    mean_R2 = {mean_R2:.{sys.float_info.dig}g}
+    std_R2 = {std_R2:.{sys.float_info.dig}g}
+    mean_T2 = {mean_T2:.{sys.float_info.dig}g}
+    std_T2 = {std_T2:.{sys.float_info.dig}g}
+    l95_T2 = {lower_bound:.{sys.float_info.dig}g}
+    u95_T2 = {upper_bound:.{sys.float_info.dig}g}"""
 
     with open(f'{fsave}/{fname}.txt', 'w') as file:
         file.write(conditions)
