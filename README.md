@@ -73,7 +73,7 @@ source myenv/bin/activate
 
 3. Install the dependencies:
 ```sh
-pip install pandas numpy matplotlib tqdm
+pip install pandas numpy matplotlib tqdm pyarrow
 ```
 
 Remember to activate the virtual environment every time you work on this project.
