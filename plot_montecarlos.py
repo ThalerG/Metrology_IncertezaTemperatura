@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import re
 from fcn import *
 import os
-from scipy.signal import savgol_filter
 
 def extract_analysis_parameters(file_path):
     with open(file_path, 'r') as file:
@@ -26,7 +25,14 @@ def extract_analysis_parameters(file_path):
 
         N_points\s*=\s*(?P<Npoints>[\d.]+)\s*
         dt\s*=\s*(?P<dt>[\d.]+)\s*
-        t1\s*=\s*(?P<t1>[\d.]+)
+        t1\s*=\s*(?P<t1>[\d.]+)\s*
+
+        mean_R2\s*=\s*(?P<mean_R2>[\d.]+)\s*
+        std_R2\s*=\s*(?P<std_R2>[\d.]+)\s*
+        mean_T2\s*=\s*(?P<mean_T2>[\d.]+)\s*
+        std_T2\s*=\s*(?P<std_T2>[\d.]+)\s*
+        l95_T2\s*=\s*(?P<l95_T2>[\d.]+)\s*
+        u95_T2\s*=\s*(?P<u95_T2>[\d.]+)
     """, re.VERBOSE)
 
     match = pattern.search(contents)
@@ -64,6 +70,8 @@ def plot_singleIteration(fname):
 
     data = pd.read_feather(dfFile)
 
+    data = data.sort_values('T2')
+
     analysis_param = extract_analysis_parameters(dfInfo)
     parameters = data['parameters'].values
 
@@ -78,15 +86,19 @@ def plot_singleIteration(fname):
 
     T2_all = data['T2'].values
 
-    parameters = parameters[0:1000]
+    nCurves = 2000
+
+    ind = np.linspace(0, len(data)-1, nCurves, dtype=int)
+
+    parameters_plot = parameters[ind]
 
     # Plot each exponential line for resistance
-    for params in parameters:
+    for params in parameters_plot:
         x = np.linspace(0, max(x_og), 100)
         R2 = generate_estimation_models(type='exp', degree=0, params=params)(x)
-        ax1.plot(x, R2, alpha=0.1, color='C0', label='_nolegend_')
+        ax1.plot(x, R2, alpha=0.2, color='C0', label='_nolegend_')
         T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
-        ax2.plot(x, T2, alpha=0.1, color='C0', label='_nolegend_')
+        ax2.plot(x, T2, alpha=0.2, color='C0', label='_nolegend_')
 
     x_tot = np.linspace(analysis_param['t1'], analysis_param['t1'] + (analysis_param['Npoints']-1)*analysis_param['dt'], analysis_param['Npoints']) 
     ind = np.isin(x_og, x_tot)
@@ -98,7 +110,7 @@ def plot_singleIteration(fname):
     ax1.scatter(x_tot, y_tot, color='black', marker='o', facecolors='none')
 
     # Add a legend entry for the monte carlo plots
-    ax1.plot([], [], alpha=0.1, label='Monte Carlo iteration', color='C0')
+    ax1.plot([], [], alpha=0.2, label='Monte Carlo iteration', color='C0')
     # Add a legend entry for the scatter plot with the original data
     ax1.scatter([], [], color='black', marker='o', facecolors='none', label='Original Data')
     # Add a legend to the first subplot
@@ -129,10 +141,9 @@ def plot_singleIteration(fname):
     n_filt = 10
     n = np.convolve(n, np.ones(n_filt)/n_filt, mode='valid')
     bins = bins[n_filt//2:-n_filt//2+1]
-    ax3.plot((bins[:-1] + bins[1:]) / 2, n, color='C2', label = 'Probability Density Function')
-    ax3.set_xlabel('Temperature [°C]')
-    ax3.set_ylabel('Probability Density Function')
-    ax3.set_title('PDF of Temperature')
+    ax3.plot((bins[:-1] + bins[1:]) / 2, n, color='C2', label = 'Probability density function')
+    ax3.set_xlabel('Winding temperature at the end of the test [°C]')
+    ax3.set_ylabel('Probability density function')
 
     # Calculate the coverage interval
     alpha = 0.05
@@ -151,8 +162,8 @@ def plot_singleIteration(fname):
 
 
 if __name__ == '__main__':
-    fname = "analise3"
-    fsave = "MC_narrowPoints"
+    fname = "analise1"
+    fsave = "MC_allPoints"
 
     fig = plot_singleIteration(fname)
 
