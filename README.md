@@ -59,11 +59,25 @@ The results of the simulations are saved in the `Resultados/` directory. Each an
 
 ## Installation
 
-To install the required dependencies, run:
+To install the required dependencies and set up a virtual environment, follow these steps:
 
+1. Create a virtual environment:
+```sh
+python -m venv myenv
+```
+
+2. Activate the virtual environment:
+```sh
+source myenv/bin/activate
+```
+
+3. Install the dependencies:
 ```sh
 pip install pandas numpy matplotlib tqdm
 ```
+
+Remember to activate the virtual environment every time you work on this project.
+
 
 ## License
 
