@@ -10,15 +10,18 @@ import functools
 import sys
 import argparse
 
-PLOT = False
-CALC_R2 = False
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--N_montecarlo', type=int, default=int(1e6), help='Number of Monte Carlo simulations')
 parser.add_argument('--fname', type=str, default='montecarlo_results', help='Name of file to save the results')
+parser.add_argument('--Plot', action='store_true', help='Enable plotting')
+parser.add_argument('--NoSave', action='store_false', help='Disable saving results')
+parser.add_argument('--execTime', action='store_true', help='Enable execution time measurement')
 
 args = parser.parse_args()
 
+SAVE = args.NoSave
+TIMEIT = args.execTime
+PLOT = args.Plot
 N_montecarlo = args.N_montecarlo
 fname = args.fname
 
@@ -107,7 +110,7 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2
 
     return montecarlo_matrix_xy
 
-def res_montecarlo_temp_montecarlo(N_montecarlo = 200, model = ('exp',0), parallel = True):
+def res_montecarlo_temp_montecarlo(N_montecarlo = 200, parallel = True):
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
 
@@ -134,17 +137,25 @@ def res_montecarlo_temp_montecarlo(N_montecarlo = 200, model = ('exp',0), parall
 
 
 if __name__ == '__main__':
-    # Assign the parsed values to variables
-    fsave = 'Resultados'
+    if SAVE:
+        # Assign the parsed values to variables
+        fsave = 'Resultados'
+        
+        # Check if the folder exists
+        if not os.path.exists(fsave):
+            # Create the folder
+            os.makedirs(fsave)
+
+    if TIMEIT:
+        import time
+        start_time = time.time()
     
-    # Check if the folder exists
-    if not os.path.exists(fsave):
-        # Create the folder
-        os.makedirs(fsave)
 
-    model = ('exp',0)
+    results, x_og, y_og = res_montecarlo_temp_montecarlo(N_montecarlo)
 
-    results, x_og, y_og = res_montecarlo_temp_montecarlo(N_montecarlo, model)
+    if TIMEIT:
+        elapsed_time = time.time() - start_time
+        print(f"Elapsed time: {elapsed_time:.5f} s")
 
     # Extract the parameters from the results
     parameters = results['params']
@@ -218,9 +229,10 @@ if __name__ == '__main__':
     print(f"T2: {mean_T2} ± {std_T2}")
     print(f"Coverage Interval of 95% of T2: [{lower_bound}, {upper_bound}]")
 
-    # Save the results to a feather file
-    results = pd.DataFrame({'R2': R2_all, 'T2': T2_all, 'parameters': parameters})
-    results.to_feather(f'{fsave}/{fname}.feather')
+    if SAVE:
+        # Save the results to a feather file
+        results = pd.DataFrame({'R2': R2_all, 'T2': T2_all, 'parameters': parameters})
+        results.to_feather(f'{fsave}/{fname}.feather')
 
     # Save the conditions to a text file
     conditions = f"""
@@ -247,5 +259,6 @@ if __name__ == '__main__':
     l95_T2 = {lower_bound:.{sys.float_info.dig}g}
     u95_T2 = {upper_bound:.{sys.float_info.dig}g}"""
 
-    with open(f'{fsave}/{fname}.txt', 'w') as file:
-        file.write(conditions)
+    if SAVE:
+        with open(f'{fsave}/{fname}.txt', 'w') as file:
+            file.write(conditions)

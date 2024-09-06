@@ -10,12 +10,16 @@ This script performs Monte Carlo simulations in parallel to speed up the computa
 #### Usage
 
 ```sh
-python fast_montecarlo.py --N_montecarlo <number_of_simulations> --fname <output_filename>
+python fast_montecarlo.py --N_montecarlo <number_of_simulations> --fname <output_filename> [--Plot] [--NoSave] [--execTime]
 ```
 
 Arguments
 --N_montecarlo: Number of Monte Carlo simulations (default: 1,000,000)
 --fname: Name of the file to save the results (default: montecarlo_results)
+--Plot: Enable plotting (optional)
+--NoSave: Disable saving results (optional)
+--execTime: Enable execution time measurement (optional)
+
 
 ### [`montecarlo_noplot.py`](command:_github.copilot.openRelativePath?%5B%7B%22scheme%22%3A%22file%22%2C%22authority%22%3A%22%22%2C%22path%22%3A%22%2Fd%3A%2FDocumentos%2FLIAE%2FMetrology_IncertezaTemperatura%2Fmontecarlo_noplot.py%22%2C%22query%22%3A%22%22%2C%22fragment%22%3A%22%22%7D%5D "d:\Documentos\LIAE\Metrology_IncertezaTemperatura\montecarlo_noplot.py")
 
