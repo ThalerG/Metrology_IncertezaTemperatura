@@ -82,7 +82,9 @@ def plot_singleIteration(fname):
 
     plt.rcParams['font.family'] = 'P052'
     # Create a figure and axis for temperature subplot
-    fig, ((ax1, ax2), ax) = plt.subplots(2, 2, figsize=(8, 6))
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 6))
+    fig.delaxes(ax3)
+    fig.delaxes(ax4)
 
     T2_all = data['T2'].values
 
