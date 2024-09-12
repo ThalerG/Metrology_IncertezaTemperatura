@@ -94,26 +94,24 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2
     y_tot = y_og[ind]
 
     # Monte Carlo simulation for deviation of sample time
-    montecarlo_matrix_x = np.random.normal(0, s_x, (len(x_tot), N_montecarlo))
-    montecarlo_matrix_x = x_tot[:, np.newaxis] + montecarlo_matrix_x
+    montecarlo_matrix_x = np.random.normal(x_tot, s_x, (N_montecarlo,len(x_tot)))
 
     # Monte Carlo simulation for deviation of initial time
-    montecarlo_t0 = np.random.normal(0, s_t0, (1, N_montecarlo))
+    montecarlo_t0 = np.random.normal(0, s_t0, (N_montecarlo, 1))
     montecarlo_matrix_x = montecarlo_matrix_x + montecarlo_t0
 
     # Monte Carlo simulation for deviation of resistance measurement
-    montecarlo_matrix_y = np.random.normal(0, s_y, (len(y_tot), N_montecarlo))
-    montecarlo_matrix_y = y_tot[:, np.newaxis] + montecarlo_matrix_y
+    montecarlo_matrix_y = np.random.normal(y_tot, s_y, (N_montecarlo, len(y_tot)))
 
     # Monte Carlo simulation for deviation of ambient temperature
-    montecarlo_matrix_Tamb_1 =  np.random.normal(Tamb_1, s_Tamb1, (1,N_montecarlo))
-    montecarlo_matrix_Tamb_2 =  np.random.normal(Tamb_2, s_Tamb2, (1,N_montecarlo))
+    montecarlo_matrix_Tamb_1 =  np.random.normal(Tamb_1, s_Tamb1, (N_montecarlo,1))
+    montecarlo_matrix_Tamb_2 =  np.random.normal(Tamb_2, s_Tamb2, (N_montecarlo,1))
 
-    montecarlo_matrix_R1 = np.random.normal(R1, s_R1, (1,N_montecarlo))
+    montecarlo_matrix_R1 = np.random.normal(R1, s_R1, (N_montecarlo,1))
 
-    montecarlo_matrix_k = 25450/(np.random.normal(cvol, s_cvol, (1,N_montecarlo)))-20
+    montecarlo_matrix_k = 25450/(np.random.normal(cvol, s_cvol, (N_montecarlo,1)))-20
 
-    montecarlo_matrix_xy = list(zip(montecarlo_matrix_x.T, montecarlo_matrix_y.T, montecarlo_matrix_Tamb_1.T, montecarlo_matrix_Tamb_2.T, montecarlo_matrix_R1.T, montecarlo_matrix_k.T)) 
+    montecarlo_matrix_xy = list(zip(montecarlo_matrix_x, montecarlo_matrix_y, montecarlo_matrix_Tamb_1, montecarlo_matrix_Tamb_2, montecarlo_matrix_R1, montecarlo_matrix_k)) 
 
     return montecarlo_matrix_xy
 
