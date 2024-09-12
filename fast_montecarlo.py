@@ -37,12 +37,14 @@ R1 = 15.39 # Resistência no início do teste
 Tamb_1 = 24 # Temperatura ambiente no início do teste
 Tamb_2 = 24 # Temperatura ambiente no início do teste
 
-k = 234.5 # Recíproco do coeficiente de temperatura do resistor
-alpha = 1/(k+Tamb_1) # Coeficiente de temperatura do resistor
+cvol = 100 # Condutividade volumétrica do cobre do resistor (%)
+s_cvol = 1 # Incerteza da condutividade volumétrica do resistor (%)
 
 s_R1 = s_dR # Incerteza da medição de resistência no início do teste
 s_Tamb1 = 0.2 # Incerteza da medição de temperatura no início do teste
 s_Tamb2 = 0.2 # Incerteza da medição de temperatura no final do teste
+
+
 
 # s_x = np.sqrt(s_t0**2 + s_dt**2)
 s_x = s_dt
@@ -68,6 +70,7 @@ def fast_process_montecarlo(xy):
     Tamb_1 = xy[2]
     Tamb_2 = xy[3]
     R1 = xy[4]
+    k = xy[5]
 
     params, _, _ = estimate_model_with_uncertainty(x, y, s_x, s_y, model=exp_model, initial_params= initial_params,maxit = 1000000)
 
@@ -101,12 +104,14 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2
     montecarlo_matrix_y = y_tot[:, np.newaxis] + montecarlo_matrix_y
 
     # Monte Carlo simulation for deviation of ambient temperature
-    montecarlo_matrix_Tamb_1 = Tamb_1 + np.random.normal(0, s_Tamb1, (1,N_montecarlo))
-    montecarlo_matrix_Tamb_2 = Tamb_2 + np.random.normal(0, s_Tamb2, (1,N_montecarlo))
+    montecarlo_matrix_Tamb_1 =  np.random.normal(Tamb_1, s_Tamb1, (1,N_montecarlo))
+    montecarlo_matrix_Tamb_2 =  np.random.normal(Tamb_2, s_Tamb2, (1,N_montecarlo))
 
-    montecarlo_matrix_R1 = R1 + np.random.normal(0, s_R1, (1,N_montecarlo))
+    montecarlo_matrix_R1 = np.random.normal(R1, s_R1, (1,N_montecarlo))
 
-    montecarlo_matrix_xy = list(zip(montecarlo_matrix_x.T, montecarlo_matrix_y.T, montecarlo_matrix_Tamb_1.T, montecarlo_matrix_Tamb_2.T, montecarlo_matrix_R1.T)) 
+    montecarlo_matrix_k = 25450/(np.random.normal(cvol, s_cvol, (1,N_montecarlo)))-20
+
+    montecarlo_matrix_xy = list(zip(montecarlo_matrix_x.T, montecarlo_matrix_y.T, montecarlo_matrix_Tamb_1.T, montecarlo_matrix_Tamb_2.T, montecarlo_matrix_R1.T, montecarlo_matrix_k.T)) 
 
     return montecarlo_matrix_xy
 
