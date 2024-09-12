@@ -40,6 +40,8 @@ Tamb_2 = 24 # Temperatura ambiente no início do teste
 cvol = 100 # Condutividade volumétrica do cobre do resistor (%)
 s_cvol = 1 # Incerteza da condutividade volumétrica do resistor (%)
 
+k = 25450/cvol - 20 # Recíproca do coeficiente de temperatura do cobre a 0°C
+
 s_R1 = s_dR # Incerteza da medição de resistência no início do teste
 s_Tamb1 = 0.2 # Incerteza da medição de temperatura no início do teste
 s_Tamb2 = 0.2 # Incerteza da medição de temperatura no final do teste
