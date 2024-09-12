@@ -56,8 +56,8 @@ initial_params = [17.472,2.06,-0.0197]
 
 ###### Análise 
 analysis_param = {
-    'dt': 2,
     'Npoints': 3,
+    'dt': 2,
     't1': 4,
     's_t0': 1e-1
 }
