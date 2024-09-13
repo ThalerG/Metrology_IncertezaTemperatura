@@ -17,4 +17,4 @@ write-host "Run 6/7"
 python .\fast_montecarlo.py --N_montecarlo 1000000 --fname beges2 --Npoints 11 --dt 2 --t1 20
 
 write-host "Run 7/7"
-python .\fast_montecarlo.py --N_montecarlo 1000000 --fname beges3 --Npoints 11 --dt 4 --t1 20
+python .\fast_montecarlo.py --N_montecarlo 1000000 --fname beges3 --Npoints 6 --dt 4 --t1 20
