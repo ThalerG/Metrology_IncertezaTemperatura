@@ -136,12 +136,12 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2
     montecarlo_matrix_y = np.random.normal(y_tot, s_y, (N_montecarlo, len(y_tot)))
 
     # Monte Carlo simulation for deviation of ambient temperature
-    montecarlo_matrix_Tamb_1 =  np.random.normal(Tamb_1, s_Tamb1, (N_montecarlo,1))
-    montecarlo_matrix_Tamb_2 =  np.random.normal(Tamb_2, s_Tamb2, (N_montecarlo,1))
+    montecarlo_matrix_Tamb_1 =  np.random.normal(Tamb_1, s_Tamb1, N_montecarlo)
+    montecarlo_matrix_Tamb_2 =  np.random.normal(Tamb_2, s_Tamb2, N_montecarlo)
 
-    montecarlo_matrix_R1 = np.random.normal(R1, s_R1, (N_montecarlo,1))
+    montecarlo_matrix_R1 = np.random.normal(R1, s_R1, N_montecarlo)
 
-    montecarlo_matrix_k = 25450/(np.random.normal(cvol, s_cvol, (N_montecarlo,1)))-20
+    montecarlo_matrix_k = 25450/np.random.normal(cvol, s_cvol, N_montecarlo) - 20
 
     montecarlo_matrix_xy = list(zip(montecarlo_matrix_x, montecarlo_matrix_y, montecarlo_matrix_Tamb_1, montecarlo_matrix_Tamb_2, montecarlo_matrix_R1, montecarlo_matrix_k)) 
 
