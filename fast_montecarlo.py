@@ -21,7 +21,7 @@ analysis_param = {
 
 # Incertezas de medição:
 
-s_dt = 0.001 # Incerteza do tempo de aquisição
+s_dt = 0.01 # Incerteza do tempo de aquisição
 
 s_dR = 0.001 # Incerteza da medição de resistência
 
