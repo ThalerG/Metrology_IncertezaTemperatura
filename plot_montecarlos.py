@@ -85,14 +85,21 @@ def plot_singleIteration(fname):
     nCurves = 2000
 
     ind = np.linspace(0, len(data)-1, nCurves, dtype=int)
+    varList = {
+        "params": data['parameters'].values,
+        "R1": data['R1'].values,
+        "Tamb_1": data['Tamb_1'].values,
+        "Tamb_2": data['Tamb_2'].values,
+        "k": data['k'].values
+    }
 
-    # Plot each exponential line for resistance
-    for _,row in data.iloc[ind].iterrows():
-        x = np.linspace(0, max(x_og), 100)
-        R2 = generate_estimation_models(type='exp', degree=0, params=row['parameters'])(x)
-        ax1.plot(x, R2, alpha=0.2, color='C0', label='_nolegend_')
-        T2 = final_temperature(row['R1'], R2, row['Tamb_1'], row['Tamb_2'], row['k'])
-        ax2.plot(x, T2, alpha=0.2, color='C0', label='_nolegend_')
+    x = np.linspace(0, max(x_og), 100)
+    R2_all = np.array([generate_estimation_models(type='exp', degree=0, params=varList['params'][i])(x) for i in ind])
+    T2_all = np.array([final_temperature(varList['R1'][i], R2_all[i], varList['Tamb_1'][i], varList['Tamb_2'][i], varList['k'][i]) for i in range(len(ind))])
+
+    for i in range(len(ind)):
+        ax1.plot(x, R2_all[i], alpha=0.2, color='C0', label='_nolegend_')
+        ax2.plot(x, T2_all[i], alpha=0.2, color='C0', label='_nolegend_')
 
     x_tot = np.linspace(analysis_param['t1'], analysis_param['t1'] + (analysis_param['Npoints']-1)*analysis_param['dt'], analysis_param['Npoints']) 
     ind = np.isin(x_og, x_tot)
