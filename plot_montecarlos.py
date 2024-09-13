@@ -62,6 +62,7 @@ def plot_singleIteration(fname):
         raise FileNotFoundError("The feather or txt file does not exist.")
 
     dfFile = f"Resultados/{fname}.feather"
+    dfMCVectors = f"Resultados/{fname}_MCvectors.feather"
     dfInfo = f"Resultados/{fname}.txt"
     df_og = pd.read_csv("Dados/data.csv")
 
@@ -69,16 +70,9 @@ def plot_singleIteration(fname):
     y_og = df_og['Resistance'].values
 
     data = pd.read_feather(dfFile)
-
-    data = data.sort_values('T2')
+    data = pd.merge(data, pd.read_feather(dfMCVectors), left_index=True, right_index=True)
 
     analysis_param = extract_analysis_parameters(dfInfo)
-    parameters = data['parameters'].values
-
-    Tamb_1 = analysis_param['Tamb_1']
-    Tamb_2 = analysis_param['Tamb_2']
-    R1 = analysis_param['R1']
-    k = analysis_param['k']
 
     plt.rcParams['font.family'] = 'P052'
     # Create a figure and axis for temperature subplot
@@ -92,14 +86,12 @@ def plot_singleIteration(fname):
 
     ind = np.linspace(0, len(data)-1, nCurves, dtype=int)
 
-    parameters_plot = parameters[ind]
-
     # Plot each exponential line for resistance
-    for params in parameters_plot:
+    for _,row in data.iloc[ind].iterrows():
         x = np.linspace(0, max(x_og), 100)
-        R2 = generate_estimation_models(type='exp', degree=0, params=params)(x)
+        R2 = generate_estimation_models(type='exp', degree=0, params=row['parameters'])(x)
         ax1.plot(x, R2, alpha=0.2, color='C0', label='_nolegend_')
-        T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
+        T2 = final_temperature(row['R1'], R2, row['Tamb_1'], row['Tamb_2'], row['k'])
         ax2.plot(x, T2, alpha=0.2, color='C0', label='_nolegend_')
 
     x_tot = np.linspace(analysis_param['t1'], analysis_param['t1'] + (analysis_param['Npoints']-1)*analysis_param['dt'], analysis_param['Npoints']) 
@@ -164,7 +156,7 @@ def plot_singleIteration(fname):
 
 
 if __name__ == '__main__':
-    fname = "analise1"
+    fname = "beges1_allPoints"
     fsave = "MC_allPoints"
 
     fig = plot_singleIteration(fname)
