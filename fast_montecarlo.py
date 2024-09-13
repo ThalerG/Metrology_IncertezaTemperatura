@@ -109,8 +109,9 @@ def fast_process_montecarlo(xy):
 
     R2 = exp_model(params,0)
     T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
+    DT = T2 - Tamb_1
 
-    return {'params': params, 'R2': R2, 'T2': T2}
+    return {'params': params, 'R2': R2, 'T2': T2, 'DT': DT}
 
 def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200):
     x_tot = np.linspace(t1, t1 + (n_x-1)*dt, n_x)
@@ -167,9 +168,17 @@ def res_montecarlo_temp_montecarlo(N_montecarlo = 200, parallel = True):
     
     results = {'params': [result['params'] for result in results_model],
                'R2': [result['R2'] for result in results_model],
-                'T2': [result['T2'] for result in results_model]}
+                'T2': [result['T2'] for result in results_model],
+                'DT': [result['DT'] for result in results_model]}
+    
+    montecarlo_vectors = {'t': [xy[0] for xy in montecarlo_matrix],
+                          'R': [xy[1] for xy in montecarlo_matrix],
+                          'Tamb_1': [xy[2] for xy in montecarlo_matrix],
+                          'Tamb_2': [xy[3] for xy in montecarlo_matrix],
+                          'R1': [xy[4] for xy in montecarlo_matrix],
+                          'k': [xy[5] for xy in montecarlo_matrix]}
 
-    return results, x_og, y_og
+    return results, x_og, y_og, montecarlo_vectors
 
 
 if __name__ == '__main__':
@@ -187,7 +196,7 @@ if __name__ == '__main__':
         start_time = time.time()
     
 
-    results, x_og, y_og = res_montecarlo_temp_montecarlo(N_montecarlo)
+    results, x_og, y_og, montecarlo_vectors = res_montecarlo_temp_montecarlo(N_montecarlo)
 
     if TIMEIT:
         elapsed_time = time.time() - start_time
@@ -204,14 +213,12 @@ if __name__ == '__main__':
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 10))
 
         # Plot each exponential line for resistance
-        for params in parameters:
+        for ind,params in enumerate(parameters):
             x = np.linspace(0, max(x_og), 100)
             R2 = generate_estimation_models(type='exp', degree=0, params=params)(x)
             ax1.plot(x, R2, color='blue', alpha=0.01)
-            T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
+            T2 = final_temperature(montecarlo_vectors['R1'][ind], R2, montecarlo_vectors['T',amb_1][ind], montecarlo_vectors['Tamb_2'][ind], montecarlo_vectors['k'][ind])
             ax2.plot(x, T2, color='red', alpha=0.01)
-            R2_all.append(R2[0])
-            T2_all.append(T2[0])
 
         x_tot = np.linspace(analysis_param['t1'], analysis_param['t1'] + (analysis_param['Npoints']-1)*analysis_param['dt'], analysis_param['Npoints']) 
         ind = np.isin(x_og, x_tot)
@@ -243,12 +250,9 @@ if __name__ == '__main__':
 
         # Show the histogram
         plt.show()
-    else:
-        for params in parameters:
-            R2 = generate_estimation_models(type='exp', degree=0, params=params)(0)
-            T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
-            R2_all.append(R2)
-            T2_all.append(T2)
+    
+    R2_all = results['R2']
+    T2_all = results['T2']
 
     mean_R2 = np.mean(R2_all)
     std_R2 = np.std(R2_all)
@@ -267,8 +271,10 @@ if __name__ == '__main__':
 
     if SAVE:
         # Save the results to a feather file
-        results = pd.DataFrame({'R2': R2_all, 'T2': T2_all, 'parameters': parameters})
+        results = pd.DataFrame({'R2': R2_all, 'T2': T2_all, 'DT': results['DT'],'parameters': parameters})
         results.to_feather(f'{fsave}/{fname}.feather')
+        montecarlo_vectors = pd.DataFrame.from_dict(montecarlo_vectors)
+        montecarlo_vectors.to_feather(f'{fsave}/{fname}_MCvectors.feather')
 
     # Save the conditions to a text file
     conditions = f"""
