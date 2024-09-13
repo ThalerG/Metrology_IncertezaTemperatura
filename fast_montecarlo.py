@@ -10,20 +10,14 @@ import functools
 import sys
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--N_montecarlo', type=int, default=int(1e6), help='Number of Monte Carlo simulations')
-parser.add_argument('--fname', type=str, default='montecarlo_results', help='Name of file to save the results')
-parser.add_argument('--Plot', action='store_true', help='Enable plotting')
-parser.add_argument('--NoSave', action='store_false', help='Disable saving results')
-parser.add_argument('--execTime', action='store_true', help='Enable execution time measurement')
+###### Valores default:
 
-args = parser.parse_args()
-
-SAVE = args.NoSave
-TIMEIT = args.execTime
-PLOT = args.Plot
-N_montecarlo = args.N_montecarlo
-fname = args.fname
+analysis_param = {
+    'Npoints': 3,
+    'dt': 2,
+    't1': 4,
+    's_t0': 1e-1
+}
 
 # Incertezas de medição:
 
@@ -46,21 +40,58 @@ s_R1 = s_dR # Incerteza da medição de resistência no início do teste
 s_Tamb1 = 0.2 # Incerteza da medição de temperatura no início do teste
 s_Tamb2 = 0.2 # Incerteza da medição de temperatura no final do teste
 
+### Parser para valores da linha de comando
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--N_montecarlo', type=int, default=int(1e6), help='Number of Monte Carlo simulations')
+parser.add_argument('--fname', type=str, default='montecarlo_results', help='Name of file to save the results')
+parser.add_argument('--Npoints', type=int, default=int(analysis_param['Npoints']), help='Number of points to consider in the analysis')
+parser.add_argument('--dt', type=int, default=int(analysis_param['dt']), help='Time interval between points')
+parser.add_argument('--t1', type=int, default=int(analysis_param['t1']), help='Initial time')
+parser.add_argument('--s_t0', type=float, default=analysis_param['s_t0'], help='Uncertainty of the initial time')
+parser.add_argument('--Plot', action='store_true', help='Enable plotting')
+parser.add_argument('--NoSave', action='store_false', help='Disable saving results')
+parser.add_argument('--execTime', action='store_true', help='Enable execution time measurement')
+parser.add_argument('--s_dt', type=float, default=s_dt, help='Uncertainty of the time acquisition')
+parser.add_argument('--s_dR', type=float, default=s_dR, help='Uncertainty of the resistance measurement')
+parser.add_argument('--R1', type=float, default=R1, help='Initial resistance')
+parser.add_argument('--Tamb_1', type=float, default=Tamb_1, help='Initial ambient temperature')
+parser.add_argument('--Tamb_2', type=float, default=Tamb_2, help='Final ambient temperature')
+parser.add_argument('--s_R1', type=float, default=s_R1, help='Uncertainty of the initial resistance')
+parser.add_argument('--s_Tamb1', type=float, default=s_Tamb1, help='Uncertainty of the initial ambient temperature')
+parser.add_argument('--s_Tamb2', type=float, default=s_Tamb2, help='Uncertainty of the final ambient temperature')
+parser.add_argument('--cvol', type=float, default=cvol, help='Copper volumetric conductivity')
+parser.add_argument('--s_cvol', type=float, default=s_cvol, help='Uncertainty of the copper volumetric conductivity')
+
+args = parser.parse_args()
+
+analysis_param['Npoints'] = args.Npoints
+analysis_param['dt'] = args.dt
+analysis_param['t1'] = args.t1
+analysis_param['s_t0'] = args.s_t0
+
+s_dt = args.s_dt
+s_dR = args.s_dR
+R1 = args.R1
+Tamb_1 = args.Tamb_1
+Tamb_2 = args.Tamb_2
+s_R1 = args.s_R1
+s_Tamb1 = args.s_Tamb1
+s_Tamb2 = args.s_Tamb2
+cvol = args.cvol
+s_cvol = args.s_cvol
+
+SAVE = args.NoSave
+TIMEIT = args.execTime
+PLOT = args.Plot
+N_montecarlo = args.N_montecarlo
+fname = args.fname
 
 # s_x = np.sqrt(s_t0**2 + s_dt**2)
 s_x = s_dt
 s_y = s_dR
 
 initial_params = [17.472,2.06,-0.0197]
-
-###### Análise 
-analysis_param = {
-    'Npoints': 3,
-    'dt': 2,
-    't1': 4,
-    's_t0': 1e-1
-}
 
 def exp_model(params, x):
     return params[0] + params[1]*np.exp(params[2]*x)
