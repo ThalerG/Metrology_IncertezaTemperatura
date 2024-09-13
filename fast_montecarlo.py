@@ -217,7 +217,7 @@ if __name__ == '__main__':
             x = np.linspace(0, max(x_og), 100)
             R2 = generate_estimation_models(type='exp', degree=0, params=params)(x)
             ax1.plot(x, R2, color='blue', alpha=0.01)
-            T2 = final_temperature(montecarlo_vectors['R1'][ind], R2, montecarlo_vectors['T',amb_1][ind], montecarlo_vectors['Tamb_2'][ind], montecarlo_vectors['k'][ind])
+            T2 = final_temperature(montecarlo_vectors['R1'][ind], R2, montecarlo_vectors['Tamb_1'][ind], montecarlo_vectors['Tamb_2'][ind], montecarlo_vectors['k'][ind])
             ax2.plot(x, T2, color='red', alpha=0.01)
 
         x_tot = np.linspace(analysis_param['t1'], analysis_param['t1'] + (analysis_param['Npoints']-1)*analysis_param['dt'], analysis_param['Npoints']) 
