@@ -62,6 +62,7 @@ def montecarlo_analysis(analysis_params: list[dict], x_og: np.ndarray, y_og: np.
     return results
 
 if __name__ == '__main__':
+    APPEND = True
     # Create the parser
     parser = argparse.ArgumentParser(description='Script for performing Monte Carlo simulations and analysis of the winding temperature of a motor.')
 
@@ -118,4 +119,7 @@ if __name__ == '__main__':
 
     results = montecarlo_analysis(allAnalysis, x_og, y_og)
 
-    results.to_csv(fsave + '/results.csv', index=False)
+    if APPEND:
+        results.to_csv(fsave + '/map_results.csv', mode='a', header=False, index=False)
+    else:
+        results.to_csv(fsave + '/map_results.csv', index=False)
