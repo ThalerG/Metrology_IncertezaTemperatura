@@ -1,4 +1,4 @@
-from montecarlo_temperature import res_montecarlo_temp_montecarlo
+from fast_montecarlo import res_montecarlo_temp_montecarlo
 from tqdm import tqdm
 import pandas as pd
 import os
