@@ -14,9 +14,12 @@ import argparse
 initial_params = [17.472,2.06,-0.0197]    
 
 def exp_model(params, x):
+    # TODO: Add docstring
+
     return params[0] + params[1]*np.exp(params[2]*x)
 
 def fast_process_montecarlo(xy, s_dt = 0.01, s_dR = 0.001):
+    # TODO: Add docstring
 
     x = xy[0]
     y = xy[1]
@@ -37,6 +40,14 @@ def generate_montecarlo_matrix(x_og, y_og,
                                s_dt = 0.01, s_dR = 0.001, s_t0 = 0.01, s_R1 = 0.001, s_Tamb1 = 0.2, s_Tamb2 = 0.2, s_cvol = 1,
                                t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200, 
                                Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100):
+    # TODO: Add docstring
+
+    # TODO: Alter the function to work for floats
+
+    t1 = int(t1)
+    dt = int(dt)
+    n_x = int(n_x)
+
     x_tot = np.linspace(t1, t1 + (n_x-1)*dt, n_x)
     ind = np.isin(x_og, x_tot)
     
@@ -74,6 +85,8 @@ def res_montecarlo_temp_montecarlo(parallel = True,
                                    s_dt = 0.01, s_dR = 0.001, s_t0 = 0.01, s_R1 = 0.001, s_Tamb1 = 0.2, s_Tamb2 = 0.2, s_cvol = 1,
                                    t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200, 
                                    Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100):
+    # TODO: Add docstring
+    
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
 
