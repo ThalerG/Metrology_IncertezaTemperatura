@@ -10,93 +10,13 @@ import functools
 import sys
 import argparse
 
-###### Valores default:
 
-analysis_param = {
-    'Npoints': 3,
-    'dt': 2,
-    't1': 4,
-    's_t0': 1e-1
-}
-
-# Incertezas de medição:
-
-s_dt = 0.01 # Incerteza do tempo de aquisição
-
-s_dR = 0.001 # Incerteza da medição de resistência
-
-# Condições de teste
-
-R1 = 15.39 # Resistência no início do teste
-Tamb_1 = 24 # Temperatura ambiente no início do teste
-Tamb_2 = 24 # Temperatura ambiente no início do teste
-
-cvol = 100 # Condutividade volumétrica do cobre do resistor (%)
-s_cvol = 1 # Incerteza da condutividade volumétrica do resistor (%)
-
-k = 25450/cvol - 20 # Recíproca do coeficiente de temperatura do cobre a 0°C
-
-s_R1 = s_dR # Incerteza da medição de resistência no início do teste
-s_Tamb1 = 0.2 # Incerteza da medição de temperatura no início do teste
-s_Tamb2 = 0.2 # Incerteza da medição de temperatura no final do teste
-
-### Parser para valores da linha de comando
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--N_montecarlo', type=int, default=int(1e6), help='Number of Monte Carlo simulations')
-parser.add_argument('--fname', type=str, default='montecarlo_results', help='Name of file to save the results')
-parser.add_argument('--Npoints', type=int, default=int(analysis_param['Npoints']), help='Number of points to consider in the analysis')
-parser.add_argument('--dt', type=int, default=int(analysis_param['dt']), help='Time interval between points')
-parser.add_argument('--t1', type=int, default=int(analysis_param['t1']), help='Initial time')
-parser.add_argument('--s_t0', type=float, default=analysis_param['s_t0'], help='Uncertainty of the initial time')
-parser.add_argument('--Plot', action='store_true', help='Enable plotting')
-parser.add_argument('--NoSave', action='store_false', help='Disable saving results')
-parser.add_argument('--execTime', action='store_true', help='Enable execution time measurement')
-parser.add_argument('--s_dt', type=float, default=s_dt, help='Uncertainty of the time acquisition')
-parser.add_argument('--s_dR', type=float, default=s_dR, help='Uncertainty of the resistance measurement')
-parser.add_argument('--R1', type=float, default=R1, help='Initial resistance')
-parser.add_argument('--Tamb_1', type=float, default=Tamb_1, help='Initial ambient temperature')
-parser.add_argument('--Tamb_2', type=float, default=Tamb_2, help='Final ambient temperature')
-parser.add_argument('--s_R1', type=float, default=s_R1, help='Uncertainty of the initial resistance')
-parser.add_argument('--s_Tamb1', type=float, default=s_Tamb1, help='Uncertainty of the initial ambient temperature')
-parser.add_argument('--s_Tamb2', type=float, default=s_Tamb2, help='Uncertainty of the final ambient temperature')
-parser.add_argument('--cvol', type=float, default=cvol, help='Copper volumetric conductivity')
-parser.add_argument('--s_cvol', type=float, default=s_cvol, help='Uncertainty of the copper volumetric conductivity')
-
-args = parser.parse_args()
-
-analysis_param['Npoints'] = args.Npoints
-analysis_param['dt'] = args.dt
-analysis_param['t1'] = args.t1
-analysis_param['s_t0'] = args.s_t0
-
-s_dt = args.s_dt
-s_dR = args.s_dR
-R1 = args.R1
-Tamb_1 = args.Tamb_1
-Tamb_2 = args.Tamb_2
-s_R1 = args.s_R1
-s_Tamb1 = args.s_Tamb1
-s_Tamb2 = args.s_Tamb2
-cvol = args.cvol
-s_cvol = args.s_cvol
-
-SAVE = args.NoSave
-TIMEIT = args.execTime
-PLOT = args.Plot
-N_montecarlo = args.N_montecarlo
-fname = args.fname
-
-# s_x = np.sqrt(s_t0**2 + s_dt**2)
-s_x = s_dt
-s_y = s_dR
-
-initial_params = [17.472,2.06,-0.0197]
+initial_params = [17.472,2.06,-0.0197]    
 
 def exp_model(params, x):
     return params[0] + params[1]*np.exp(params[2]*x)
 
-def fast_process_montecarlo(xy):
+def fast_process_montecarlo(xy, s_dt = 0.01, s_dR = 0.001):
 
     x = xy[0]
     y = xy[1]
@@ -105,7 +25,7 @@ def fast_process_montecarlo(xy):
     R1 = xy[4]
     k = xy[5]
 
-    params, _, _ = estimate_model_with_uncertainty(x, y, s_x, s_y, model=exp_model, initial_params= initial_params,maxit = 1000000)
+    params, _, _ = estimate_model_with_uncertainty(x, y, s_dt, s_dR, model=exp_model, initial_params= initial_params,maxit = 1000000)
 
     R2 = exp_model(params,0)
     T2 = final_temperature(R1, R2, Tamb_1, Tamb_2, k)
@@ -113,7 +33,10 @@ def fast_process_montecarlo(xy):
 
     return {'params': params, 'R2': R2, 'T2': T2, 'DT': DT}
 
-def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200):
+def generate_montecarlo_matrix(x_og, y_og, 
+                               s_dt = 0.01, s_dR = 0.001, s_t0 = 0.01, s_R1 = 0.001, s_Tamb1 = 0.2, s_Tamb2 = 0.2, s_cvol = 1,
+                               t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200, 
+                               Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100):
     x_tot = np.linspace(t1, t1 + (n_x-1)*dt, n_x)
     ind = np.isin(x_og, x_tot)
     
@@ -126,14 +49,14 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2
     y_tot = y_og[ind]
 
     # Monte Carlo simulation for deviation of sample time
-    montecarlo_matrix_x = np.random.normal(x_tot, s_x, (N_montecarlo,len(x_tot)))
+    montecarlo_matrix_x = np.random.normal(x_tot, s_dt, (N_montecarlo,len(x_tot)))
 
     # Monte Carlo simulation for deviation of initial time
     montecarlo_t0 = np.random.normal(0, s_t0, (N_montecarlo, 1))
     montecarlo_matrix_x = montecarlo_matrix_x + montecarlo_t0
 
     # Monte Carlo simulation for deviation of resistance measurement
-    montecarlo_matrix_y = np.random.normal(y_tot, s_y, (N_montecarlo, len(y_tot)))
+    montecarlo_matrix_y = np.random.normal(y_tot, s_dR, (N_montecarlo, len(y_tot)))
 
     # Monte Carlo simulation for deviation of ambient temperature
     montecarlo_matrix_Tamb_1 =  np.random.normal(Tamb_1, s_Tamb1, N_montecarlo)
@@ -147,19 +70,25 @@ def generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = 0.01, t1 = 4, dt = 2
 
     return montecarlo_matrix_xy
 
-def res_montecarlo_temp_montecarlo(N_montecarlo = 200, parallel = True):
+def res_montecarlo_temp_montecarlo(parallel = True, 
+                                   s_dt = 0.01, s_dR = 0.001, s_t0 = 0.01, s_R1 = 0.001, s_Tamb1 = 0.2, s_Tamb2 = 0.2, s_cvol = 1,
+                                   t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200, 
+                                   Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100):
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
 
     x_og = df['Time'].values
     y_og = df['Resistance'].values
 
-    montecarlo_matrix = generate_montecarlo_matrix(x_og, y_og, s_x, s_y, s_t0 = analysis_param['s_t0'], t1 = int(analysis_param['t1']), dt = int(analysis_param['dt']), n_x = int(analysis_param['Npoints']), N_montecarlo = N_montecarlo)
+    montecarlo_matrix = generate_montecarlo_matrix(x_og, y_og, 
+                                                   s_dt = s_dt, s_dR = s_dR, s_t0 = s_t0, s_R1 = s_R1, s_Tamb1 = s_Tamb1, s_Tamb2 = s_Tamb2, s_cvol = s_cvol,
+                                                   t1 = t1, dt = dt, n_x = n_x, N_montecarlo = N_montecarlo,
+                                                   Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, cvol = cvol)
 
     if parallel:
         n_jobs = os.cpu_count()
         with Pool(n_jobs) as p:
-            results_model = list(tqdm(p.imap(functools.partial(fast_process_montecarlo), montecarlo_matrix), desc='Monte Carlo Simulation', total=N_montecarlo, leave = False))
+            results_model = list(tqdm(p.imap(functools.partial(fast_process_montecarlo, s_dt = s_dt, s_dR = s_dR), montecarlo_matrix), desc='Monte Carlo Simulation', total=N_montecarlo, leave = False))
     else:
         results_model = []
 
@@ -180,23 +109,74 @@ def res_montecarlo_temp_montecarlo(N_montecarlo = 200, parallel = True):
 
     return results, x_og, y_og, montecarlo_vectors
 
-
 if __name__ == '__main__':
-    if SAVE:
-        # Assign the parsed values to variables
-        fsave = 'Resultados'
-        
-        # Check if the folder exists
-        if not os.path.exists(fsave):
-            # Create the folder
-            os.makedirs(fsave)
+    ###### Valores default:
+
+    analysis_param = {
+        'Npoints': 3,
+        'dt': 10,
+        't1': 10,
+        's_t0': 1e-1
+    }
+
+    ### Parser para valores da linha de comando
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--N_montecarlo', type=int, default=int(1e6), help='Number of Monte Carlo simulations')
+    parser.add_argument('--fname', type=str, default='montecarlo_results', help='Name of file to save the results')
+    parser.add_argument('--Npoints', type=int, default=int(analysis_param['Npoints']), help='Number of points to consider in the analysis')
+    parser.add_argument('--dt', type=int, default=int(analysis_param['dt']), help='Time interval between points')
+    parser.add_argument('--t1', type=int, default=int(analysis_param['t1']), help='Initial time')
+    parser.add_argument('--s_t0', type=float, default=analysis_param['s_t0'], help='Uncertainty of the initial time')
+    parser.add_argument('--Plot', action='store_true', help='Enable plotting')
+    parser.add_argument('--NoSave', action='store_false', help='Disable saving results')
+    parser.add_argument('--execTime', action='store_true', help='Enable execution time measurement')
+    parser.add_argument('--s_dt', type=float, default=0.01, help='Uncertainty of the time acquisition')
+    parser.add_argument('--s_dR', type=float, default=0.001, help='Uncertainty of the resistance measurement')
+    parser.add_argument('--R1', type=float, default=15.39, help='Initial resistance')
+    parser.add_argument('--Tamb_1', type=float, default=24, help='Initial ambient temperature')
+    parser.add_argument('--Tamb_2', type=float, default=24, help='Final ambient temperature')
+    parser.add_argument('--s_R1', type=float, default=0.001, help='Uncertainty of the initial resistance')
+    parser.add_argument('--s_Tamb1', type=float, default=0.2, help='Uncertainty of the initial ambient temperature')
+    parser.add_argument('--s_Tamb2', type=float, default=0.2, help='Uncertainty of the final ambient temperature')
+    parser.add_argument('--cvol', type=float, default=100, help='Copper volumetric conductivity')
+    parser.add_argument('--s_cvol', type=float, default=1, help='Uncertainty of the copper volumetric conductivity')
+
+    args = parser.parse_args()
+
+    analysis_param['Npoints'] = args.Npoints
+    analysis_param['dt'] = args.dt
+    analysis_param['t1'] = args.t1
+    analysis_param['s_t0'] = args.s_t0
+
+    s_dt = args.s_dt
+    s_dR = args.s_dR
+    R1 = args.R1
+    Tamb_1 = args.Tamb_1
+    Tamb_2 = args.Tamb_2
+    s_R1 = args.s_R1
+    s_Tamb1 = args.s_Tamb1
+    s_Tamb2 = args.s_Tamb2
+    cvol = args.cvol
+    s_cvol = args.s_cvol
+
+    k = 25450/cvol - 20 # Recíproca do coeficiente de temperatura do cobre a 0°C
+
+    SAVE = args.NoSave
+    TIMEIT = args.execTime
+    PLOT = args.Plot
+    N_montecarlo = args.N_montecarlo
+    fname = args.fname
+
 
     if TIMEIT:
         import time
         start_time = time.time()
     
 
-    results, x_og, y_og, montecarlo_vectors = res_montecarlo_temp_montecarlo(N_montecarlo)
+    results, x_og, y_og, montecarlo_vectors = res_montecarlo_temp_montecarlo(N_montecarlo = N_montecarlo, 
+                                                                              s_dt = s_dt, s_dR = s_dR, s_t0 = analysis_param['s_t0'], s_R1 = s_R1, s_Tamb1 = s_Tamb1, s_Tamb2 = s_Tamb2, s_cvol = s_cvol,
+                                                                              t1 = analysis_param['t1'], dt = analysis_param['dt'], n_x = analysis_param['Npoints'], 
+                                                                              Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, cvol = cvol)
 
     if TIMEIT:
         elapsed_time = time.time() - start_time
@@ -270,15 +250,22 @@ if __name__ == '__main__':
     print(f"Coverage Interval of 95% of T2: [{lower_bound}, {upper_bound}]")
 
     if SAVE:
+        # Assign the parsed values to variables
+        fsave = 'Resultados'
+        
+        # Check if the folder exists
+        if not os.path.exists(fsave):
+            # Create the folder
+            os.makedirs(fsave)
+        
         # Save the results to a feather file
-        results = pd.DataFrame({'R2': R2_all, 'T2': T2_all, 'DT': results['DT'],'parameters': parameters})
+        results = pd.DataFrame({'R2': results['R2'], 'T2': results['T2'], 'DT': results['DT'],'parameters': results['params']})
         results.to_feather(f'{fsave}/{fname}.feather')
         montecarlo_vectors = pd.DataFrame.from_dict(montecarlo_vectors)
         montecarlo_vectors.to_feather(f'{fsave}/{fname}_MCvectors.feather')
 
-    # Save the conditions to a text file
-    conditions = f"""
-    s_dt = {s_dt}
+        # Save the conditions to a text file
+        conditions = f"""s_dt = {s_dt}
     s_dR = {s_dR}
 
     R1 = {R1}
@@ -301,6 +288,5 @@ if __name__ == '__main__':
     l95_T2 = {lower_bound:.{sys.float_info.dig}g}
     u95_T2 = {upper_bound:.{sys.float_info.dig}g}"""
 
-    if SAVE:
         with open(f'{fsave}/{fname}.txt', 'w') as file:
             file.write(conditions)
