@@ -80,8 +80,6 @@ def plot_singleIteration(fname):
     fig.delaxes(ax3)
     fig.delaxes(ax4)
 
-    T2_all = data['T2'].values
-
     nCurves = 2000
 
     ind = np.linspace(0, len(data)-1, nCurves, dtype=int)
@@ -130,6 +128,8 @@ def plot_singleIteration(fname):
     ax2.set_xlim(0, max(x_og))
 
     # Create a figure and axis for cdf subplot
+    T2_all = data['T2'].values
+    
     ax3 = plt.subplot(2, 1, 2)
     n, bins, patches = ax3.hist(T2_all, bins=50, edgecolor='C0', alpha=1, density=True, label='Frequency', facecolor="none")
     # Create a second y-axis for frequency
