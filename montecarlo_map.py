@@ -24,7 +24,7 @@ def generateConditions(baseValues, analysesAlter, x_og, analysisSkip = None):
 
     if analysisSkip is not None:
         analysisSkip = analysisSkip[analysisSkip.columns.intersection(conditions.columns)]
-        conditions = conditions[~conditions.apply(tuple, axis=1).isin(analysisSkip.apply(tuple, axis=1))]
+        conditions = pd.merge(conditions, analysisSkip, how='outer', indicator=True).query("_merge == 'left_only'").drop('_merge', axis=1).reset_index(drop=True)
 
     return conditions
 
@@ -104,6 +104,7 @@ if __name__ == '__main__':
 
                 {'s_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1],
                  'dt': [2],
+                 't1': [4],
                  'Npoints': [19]},
                 ]
     
