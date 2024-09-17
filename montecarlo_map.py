@@ -8,14 +8,12 @@ from scipy.stats import kurtosis, skew
 import argparse
 import os
 
-###### Análise 
+def generateConditions(baseValues, analysesAlter, x_og, analysisSkip = None):
+    allAnalysis = [{**baseValues, **an} for an in analysesAlter]
 
-def montecarlo_analysis(analysis_params: list[dict], x_og: np.ndarray, y_og: np.ndarray):
-    # TODO: Add docstring
-   
     conditions = pd.DataFrame()
 
-    for params in analysis_params:
+    for params in allAnalysis:
         keys, values = zip(*params.items())
         conditions = pd.concat([conditions, pd.DataFrame(list(product(*values)), columns=keys)], axis=0)
 
@@ -23,6 +21,15 @@ def montecarlo_analysis(analysis_params: list[dict], x_og: np.ndarray, y_og: np.
 
     ind = (conditions['t1'] >= x_og[0]) & ((conditions['t1'] + (conditions['Npoints']-1)*conditions['dt']) <= x_og[-1])
     conditions = conditions.loc[ind]
+
+    if analysisSkip is not None:
+        analysisSkip = analysisSkip[analysisSkip.columns.intersection(conditions.columns)]
+        conditions = conditions[~conditions.apply(tuple, axis=1).isin(analysisSkip.apply(tuple, axis=1))]
+
+    return conditions
+
+def montecarlo_analysis(analysis_params: list[dict], x_og: np.ndarray, y_og: np.ndarray):
+    # TODO: Add docstring
 
     results_data = {"mean_T2": [], "std_T2": [], "l95_T2": [], "u95_T2": [], "kur_T2": [], "skew_T2": [],
                     "mean_R2": [], "std_R2": [], "l95_R2": [], "u95_R2": [], "kur_R2": [], "skew_R2": [],
@@ -68,7 +75,7 @@ if __name__ == '__main__':
 
     # Add the arguments
     parser.add_argument('--fsave', type=str, default='Resultados', help='Folder to save the results')
-    parser.add_argument('--N_montecarlo', type=int, default=200, help='Number of Monte Carlo simulations')
+    parser.add_argument('--N_montecarlo', type=int, default=1000000, help='Number of Monte Carlo simulations')
 
     baseValues = {'dt': [10],
                 'Npoints': [3],
@@ -94,10 +101,12 @@ if __name__ == '__main__':
 
                 {'s_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1],
                  'dt': [2]},
+
+                {'s_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1],
+                 'dt': [2],
+                 'Npoints': [19]},
                 ]
     
-    allAnalysis = [{**baseValues, **an} for an in analysesAlter]
-
     # Parse the arguments
     args = parser.parse_args()
 
@@ -112,12 +121,14 @@ if __name__ == '__main__':
     file_path = "Dados/data.csv"
     df = pd.read_csv(file_path)
 
-    model = ('exp',0)
-
     x_og = df['Time'].values
     y_og = df['Resistance'].values
 
-    results = montecarlo_analysis(allAnalysis, x_og, y_og)
+    conditionsDone = pd.read_csv('Resultados/map_results.csv') if APPEND else None
+
+    conditions = generateConditions(baseValues, analysesAlter, x_og, conditionsDone)
+
+    results = montecarlo_analysis(conditions, x_og, y_og)
 
     if APPEND:
         results.to_csv(fsave + '/map_results.csv', mode='a', header=False, index=False)
