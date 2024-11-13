@@ -74,9 +74,10 @@ def plot_singleIteration(fname):
 
     analysis_param = extract_analysis_parameters(dfInfo)
 
-    plt.rcParams['font.family'] = 'P052'
+    cm = 1/2.54  # centimeters in inches
+    plt.rcParams['font.family'] = 'Times New Roman'
     # Create a figure and axis for temperature subplot
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(8, 6))
+    fig, ((ax1, ax_r), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12*cm, 11*cm))
     fig.delaxes(ax3)
     fig.delaxes(ax4)
 
@@ -94,7 +95,7 @@ def plot_singleIteration(fname):
     x = np.linspace(0, max(x_og), 100)
     R2_all = np.array([generate_estimation_models(type='exp', degree=0, params=varList['params'][i])(x) for i in ind])
     T2_all = np.array([final_temperature(varList['R1'][i], R2_all[i], varList['Tamb_1'][i], varList['Tamb_2'][i], varList['k'][i]) for i in range(len(ind))])
-
+    ax2 = ax_r.twinx()
     for i in range(len(ind)):
         ax1.plot(x, R2_all[i], alpha=0.2, color='C0', label='_nolegend_')
         ax2.plot(x, T2_all[i], alpha=0.2, color='C0', label='_nolegend_')
@@ -113,19 +114,23 @@ def plot_singleIteration(fname):
     # Add a legend entry for the scatter plot with the original data
     ax1.scatter([], [], color='black', marker='o', facecolors='none', label='Original Data')
     # Add a legend to the first subplot
-    ax1.legend()
+    # ax1.legend()
 
     # Add labels and title for resistance subplot
     ax1.set_xlabel('Time [s]')
     ax1.set_ylabel('Resistance [Ω]')
 
     # Add labels and title for temperature subplot
-    ax2.set_xlabel('Time [s]')
+    ax_r.set_xlabel('Time [s]')
+    ax_r.tick_params(left = False, labelleft = False) 
     ax2.set_ylabel('Temperature [°C]')
 
     # Set the x-axis limits for both subplots
     ax1.set_xlim(0, max(x_og))
     ax2.set_xlim(0, max(x_og))
+    ax1.grid()
+    ax2.grid()
+    ax_r.grid(axis = 'x')
 
     # Create a figure and axis for cdf subplot
     T2_all = data['T2'].values
@@ -155,16 +160,16 @@ def plot_singleIteration(fname):
     ax3.fill_between((bins[:-1] + bins[1:]) / 2, 0, n, where=((bins[:-1] + bins[1:]) / 2 >= lower_bound) & ((bins[:-1] + bins[1:]) / 2 <= upper_bound), color='C1', alpha=0.5, label='95% Coverage Interval')
 
     # Add a legend to the subplot
-    ax3.legend()
-
-    plt.tight_layout()
+    # ax3.legend()
+    ax3.grid()
+    fig.tight_layout()
 
     return fig
 
 
 if __name__ == '__main__':
-    fname = "beges1_allPoints"
-    fsave = "MC_allPoints"
+    fname = "widePoints"
+    fsave = "MC_widePoints"
 
     fig = plot_singleIteration(fname)
 

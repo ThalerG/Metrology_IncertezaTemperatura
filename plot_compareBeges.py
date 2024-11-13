@@ -31,10 +31,11 @@ for k,file in enumerate(analysis_files):
     
 
 # Plotting
-fig, ax = plt.subplots(figsize=(8, 4))
+cm = 1/2.54  # centimeters in inches
+fig, ax = plt.subplots(figsize=(14*cm, 10*cm))
 
 # Define labels for each index
-index_labels = [f'{Npoints} measurements\n Start at {t1} s, measure every {dt} s' for Npoints, dt, t1 in df_montecarlo[['Npoints', 'dt', 't1']].values]
+index_labels = [f'{Npoints} measurements\n Start at {t1} s\n Measure every {dt} s' for Npoints, dt, t1 in df_montecarlo[['Npoints', 'dt', 't1']].values]
 
 # Plot begesLin
 ax.errorbar(df_montecarlo.index - 0.15, df_montecarlo['begesLin'], yerr=df_montecarlo['begesStd'], fmt='o', label='Linear extrapolation [12]', color='C0', capsize=5)
@@ -63,6 +64,8 @@ plt.rcParams['font.family'] = 'P052'
 # Labels and legend
 ax.set_ylabel('Temperature rise [°C]', fontname='P052')
 ax.legend()
+
+ax.grid()
 
 plt.tight_layout()
 
