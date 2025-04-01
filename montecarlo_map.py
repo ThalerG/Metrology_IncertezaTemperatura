@@ -93,20 +93,29 @@ if __name__ == '__main__':
                 's_cvol': [1]}
 
     analysesAlter = [
-                {'s_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1]},
+                # {'Npoints': [3], 't1': [10], 'dt': [10], 's_t0' : [baseValues['s_t0'][0]*1.01]},
+                # {'Npoints': [3], 't1': [10], 'dt': [10], 's_dt' : [baseValues['s_dt'][0]*1.01]},
+                # {'Npoints': [3], 't1': [10], 'dt': [10], 's_dR' : [baseValues['s_dR'][0]*1.01]},
+                # {'Npoints': [3], 't1': [10], 'dt': [10], 's_R1' : [baseValues['s_R1'][0]*1.01]},
+                # {'Npoints': [3], 't1': [10], 'dt': [10], 's_Tamb1' : [baseValues['s_Tamb1'][0]*1.01]},
+                # {'Npoints': [3], 't1': [10], 'dt': [10], 's_Tamb2' : [baseValues['s_Tamb2'][0]*1.01]},
+                # {'Npoints': [3], 't1': [10], 'dt': [10], 's_cvol' : [baseValues['s_cvol'][0]*1.01]},
 
-                {'s_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1],
-                 'dt': [2],
-                 't1': [4]},
+                # {'Npoints': [19], 't1': [4], 'dt': [2], 's_t0' : [baseValues['s_t0'][0]*1.01]},
+                # {'Npoints': [19], 't1': [4], 'dt': [2], 's_dt' : [baseValues['s_dt'][0]*1.01]},
+                # {'Npoints': [19], 't1': [4], 'dt': [2], 's_dR' : [baseValues['s_dR'][0]*1.01]},
+                # {'Npoints': [19], 't1': [4], 'dt': [2], 's_R1' : [baseValues['s_R1'][0]*1.01]},
+                # {'Npoints': [19], 't1': [4], 'dt': [2], 's_Tamb1' : [baseValues['s_Tamb1'][0]*1.01]},
+                # {'Npoints': [19], 't1': [4], 'dt': [2], 's_Tamb2' : [baseValues['s_Tamb2'][0]*1.01]},
+                # {'Npoints': [19], 't1': [4], 'dt': [2], 's_cvol' : [baseValues['s_cvol'][0]*1.01]},
 
-                {'s_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1],
-                 'dt': [2],
-                 't1': [20]},
-
-                {'s_t0': [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1e0, 2e0, 5e0, 1e1],
-                 'dt': [2],
-                 't1': [4],
-                 'Npoints': [19]},
+                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_t0' : [baseValues['s_t0'][0]*1.01]},
+                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_dt' : [baseValues['s_dt'][0]*1.01]},
+                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_dR' : [baseValues['s_dR'][0]*1.01]},
+                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_R1' : [baseValues['s_R1'][0]*1.01]},
+                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_Tamb1' : [baseValues['s_Tamb1'][0]*1.01]},
+                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_Tamb2' : [baseValues['s_Tamb2'][0]*1.01]},
+                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_cvol' : [baseValues['s_cvol'][0]*1.01]}
                 ]
     
     # Parse the arguments

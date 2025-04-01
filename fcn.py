@@ -50,6 +50,11 @@ def estimate_model_with_uncertainty(x: Union[np.ndarray, List[float]],
     # Define o modelo
     model = odr.Model(model)
 
+    if s_x == 0:
+        s_x = None
+    if s_y == 0:
+        s_y = None
+
     # Create objeto RealData
     data = odr.RealData(x, y, sx = s_x, sy = s_y)
 
