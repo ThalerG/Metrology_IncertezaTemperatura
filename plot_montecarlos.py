@@ -168,8 +168,8 @@ def plot_singleIteration(fname):
 
 
 if __name__ == '__main__':
-    fname = "widePoints"
-    fsave = "MC_widePoints"
+    fname = "narrowPointsWorstCase"
+    fsave = "MC_narrowPointsWorstCase"
 
     fig = plot_singleIteration(fname)
 
