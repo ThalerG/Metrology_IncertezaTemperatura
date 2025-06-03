@@ -64,7 +64,7 @@ def get_unc_GUM(baseValues):
 
     R2 = B0+B1*np.exp(B2*t0)
 
-    s_DT = [((R2-R1)/R1 + 1)*s_Tamb1, # Uncertainty of initial ambient temperature
+    s_DT_cov = [((R2-R1)/R1 + 1)*s_Tamb1, # Uncertainty of initial ambient temperature
             -1*s_Tamb2, # Uncertainty of final ambient temperature
             -R2*(k+Tamb_1)/(R1**2)*s_R1, # Uncertainty of initial resistance
             -(R2-R1)/R1*25450/cvol**2*s_cvol, # Uncertainty of copper purity
@@ -74,9 +74,25 @@ def get_unc_GUM(baseValues):
             -B2*B1*np.exp(B2*t0)*R2*(k+Tamb_1)/(R1**2)*s_t0 # Uncertainty of t0
             ]
     
-    DT = (R2-R1)/R1*(k+Tamb_1)-(Tamb_2-Tamb_1)
+    s = []
+    for sign0 in [True,False]:
+        b0 = (B0+s_B0) if sign0 else (B0-s_B0)
+        for sign1 in [True,False]:
+            b1 = (B1+s_B1) if sign1 else (B1-s_B1)
+            for sign2 in [True,False]:
+                b2 = (B2+s_B2) if sign2 else (B2-s_B2)
+                for signt0 in [True,False]:
+                    t0 = (t0+s_t0) if signt0 else (t0-s_t0)
+                    R = b0+b1*np.exp(b2*t0)-R2
+                    s.append(abs(R))
+    sR2_bound = np.max(s)
+
+    s_DT_bound = np.linalg.norm(s_DT_cov[0:4] + [sR2_bound])
     
-    return DT, np.linalg.norm(s_DT), s_DT
+    DT = (R2-R1)/R1*(k+Tamb_1)-(Tamb_2-Tamb_1)
+
+    s_noR2 = np.linalg.norm(s_DT_cov[0:4])
+    return DT, np.linalg.norm(s_DT_cov), s_DT_cov, s_DT_bound, s_noR2
 
 # Path to the CSV file
 csv_file = 'Resultados/beges.csv'
@@ -99,7 +115,7 @@ for k,file in enumerate(analysis_files):
     selected_params["mean_DT"] = df_full['DT'].mean()
     selected_params["std_DT"] = df_full['DT'].std()
 
-    selected_params["DTGum"], selected_params["sDTGum"], _ = get_unc_GUM(params)
+    selected_params["DTGum"], selected_params["sDTGum"], _, selected_params["DTGum_bound"], selected_params["sDTGum_noR2"] = get_unc_GUM(params)
 
     df_montecarlo = pd.concat([df_montecarlo, pd.DataFrame([selected_params])], ignore_index=True)
 
@@ -113,19 +129,25 @@ fig, ax = plt.subplots(figsize=(14*cm, 8*cm))
 index_labels = [f'{Npoints} measurements\n Start at {t1} s\n Measure every {dt} s' for Npoints, dt, t1 in df_montecarlo[['Npoints', 'dt', 't1']].values]
 
 # Plot begesLin
-ax.errorbar(df_montecarlo.index - 0.2, df_montecarlo['begesLin'], yerr=df_montecarlo['begesStd'], fmt='o', label='Linear [12]', color='C0', capsize=5)
+ax.errorbar(df_montecarlo.index - 0.3, df_montecarlo['begesLin'], yerr=df_montecarlo['begesStd'], fmt='o', label='Linear [12]', color='C0', capsize=5)
 
 # Plot begesPoly2
-ax.errorbar(df_montecarlo.index - 0.1, df_montecarlo['begesPoly2'], yerr=df_montecarlo['begesStd'], fmt='o', label=r'2$^{\text{nd}}$ order polynomial [12]', color='C1', capsize=5)
+ax.errorbar(df_montecarlo.index - 0.2, df_montecarlo['begesPoly2'], yerr=df_montecarlo['begesStd'], fmt='o', label=r'2$^{\text{nd}}$ order polynomial [12]', color='C1', capsize=5)
 
 # Plot begesPoly4
-ax.errorbar(df_montecarlo.index + 0, df_montecarlo['begesPoly4'], yerr=df_montecarlo['begesStd'], fmt='o', label=r'4$^{\text{nd}}$ order polynomial [12]', color='C2', capsize=5)
+ax.errorbar(df_montecarlo.index - 0.1, df_montecarlo['begesPoly4'], yerr=df_montecarlo['begesStd'], fmt='o', label=r'4$^{\text{nd}}$ order polynomial [12]', color='C2', capsize=5)
 
 # Plot GUM
-ax.errorbar(df_montecarlo.index + 0.1, df_montecarlo['DTGum'], yerr=df_montecarlo['sDTGum'], fmt='o', label='Regression covariance', color='C3', capsize=5)
+ax.errorbar(df_montecarlo.index + 0, df_montecarlo['DTGum'], yerr=df_montecarlo['sDTGum_noR2'], fmt='o', label='GUM [] (no uR2)', color='C3', capsize=5)
+
+# Plot GUM
+ax.errorbar(df_montecarlo.index + 0.1, df_montecarlo['DTGum'], yerr=df_montecarlo['sDTGum'], fmt='o', label='GUM [] + covariance (prop.) []', color='C4', capsize=5)
+
+# Plot GUM
+ax.errorbar(df_montecarlo.index + 0.2, df_montecarlo['DTGum'], yerr=df_montecarlo['DTGum_bound'], fmt='o', label='GUM [] + covariance (bound.) [32]', color='C5', capsize=5)
 
 # Plot mean_DT
-ax.errorbar(df_montecarlo.index + 0.2, df_montecarlo['mean_DT'], yerr=df_montecarlo['std_DT'], fmt='o', label='Proposed method', color='C4', capsize=5)
+ax.errorbar(df_montecarlo.index + 0.3, df_montecarlo['mean_DT'], yerr=df_montecarlo['std_DT'], fmt='o', label='Proposed method', color='C6', capsize=5)
 
 # Set custom x-ticks
 ax.set_xticks(df_montecarlo.index)
@@ -150,4 +172,4 @@ plt.tight_layout()
 if not os.path.exists("Gráficos"):
     os.makedirs("Gráficos")
 
-fig.savefig(f"Gráficos/begesCompareA.pdf")
+fig.savefig(f"Gráficos/begesCompareB.pdf")

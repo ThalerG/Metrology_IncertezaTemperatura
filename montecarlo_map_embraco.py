@@ -1,5 +1,5 @@
 from fcn import *
-from fast_montecarlo import res_montecarlo_temp_montecarlo
+from fast_montecarlo_embraco import res_montecarlo_temp_montecarlo
 import numpy as np
 import pandas as pd
 import tqdm
@@ -19,8 +19,7 @@ def generateConditions(baseValues, analysesAlter, x_og, analysisSkip = None):
 
     conditions = conditions.drop_duplicates().reset_index(drop=True)
 
-    ind = (conditions['t1'] >= x_og[0]) & ((conditions['t1'] + (conditions['Npoints']-1)*conditions['dt']) <= x_og[-1])
-    conditions = conditions.loc[ind]
+    conditions['indexes'] = conditions.apply(lambda row: list(range(int(row['N1']), int(row['N1']) + int(row['Npoints']) * int(row['dN']), int(row['dN']))), axis=1)
 
     if analysisSkip is not None:
         analysisSkip = analysisSkip[analysisSkip.columns.intersection(conditions.columns)]
@@ -37,10 +36,10 @@ def montecarlo_analysis(analysis_params: list[dict], x_og: np.ndarray, y_og: np.
 
     for k,row in tqdm.tqdm(conditions.iterrows(), desc = 'Condition', position=1, leave = True,  total=conditions.shape[0]):
 
-        results, _, _, _ = res_montecarlo_temp_montecarlo(N_montecarlo = N_montecarlo, 
+        results, _, _, montecarlo_vectors = res_montecarlo_temp_montecarlo(N_montecarlo = N_montecarlo, 
                                                                               s_dt = row['s_dt'], s_dR = row['s_dR'], s_t0 = row['s_t0'], s_R1 = row['s_R1'], s_Tamb1 = row['s_Tamb1'], s_Tamb2 = row['s_Tamb2'], s_cvol = row['s_cvol'],
-                                                                              t1 = row['t1'], dt = row['dt'], n_x = row['Npoints'], 
-                                                                              R1 = row['R1'], Tamb_1 = row['Tamb1'], Tamb_2 = row['Tamb2'], cvol = row['cvol'])
+                                                                              N1 = row['N1'], dN = row['dN'], n_x = row['Npoints'], 
+                                                                              R1 = row['R1'], Tamb_1 = row['Tamb1'], Tamb_2 = row['Tamb2'], cvol = row['cvol'], t0 = row['t0'])
         
         results_data["mean_T2"].append(np.mean(results['T2']))
         results_data["std_T2"].append(np.std(results['T2']))
@@ -63,13 +62,18 @@ def montecarlo_analysis(analysis_params: list[dict], x_og: np.ndarray, y_og: np.
         results_data["kur_DT"].append(kurtosis(results['DT']))
         results_data["skew_DT"].append(skew(results['DT']))
 
+        results = pd.DataFrame({'R2': results['R2'], 'T2': results['T2'], 'DT': results['DT'],'parameters': results['params']})
+        results.to_feather(f'{fsave}/embraco3.feather')
+        montecarlo_vectors = pd.DataFrame.from_dict(montecarlo_vectors)
+        montecarlo_vectors.to_feather(f'{fsave}/embraco3_MCvectors.feather')
+
     results = pd.DataFrame(results_data)   
     results = pd.concat([conditions.reset_index(drop=True), results.reset_index(drop=True)], axis=1)   
         
     return results
 
 if __name__ == '__main__':
-    APPEND = True
+    APPEND = False
     # Create the parser
     parser = argparse.ArgumentParser(description='Script for performing Monte Carlo simulations and analysis of the winding temperature of a motor.')
 
@@ -77,15 +81,16 @@ if __name__ == '__main__':
     parser.add_argument('--fsave', type=str, default='Resultados', help='Folder to save the results')
     parser.add_argument('--N_montecarlo', type=int, default=1000000, help='Number of Monte Carlo simulations')
 
-    baseValues = {'dt': [10],
+    baseValues = {'dN': [1],
                 'Npoints': [3],
-                't1': [10],
-                'R1': [15.39],
-                'Tamb1': [24],
-                'Tamb2': [24],
+                'N1': [0],
+                'R1': [31.6],
+                't0': [0],
+                'Tamb1': [25],
+                'Tamb2': [25],
                 'cvol': [100],
                 's_t0': [0.1],
-                's_dt': [0.01],
+                's_dt': [0.001],
                 's_dR': [0.001],
                 's_R1': [0.001],
                 's_Tamb1': [0.2],
@@ -93,29 +98,7 @@ if __name__ == '__main__':
                 's_cvol': [1]}
 
     analysesAlter = [
-                {'Npoints': [3], 't1': [10], 'dt': [10], 's_t0' : [baseValues['s_t0'][0],baseValues['s_t0'][0]*1.01]},
-                {'Npoints': [3], 't1': [10], 'dt': [10], 's_dt' : [baseValues['s_dt'][0],baseValues['s_dt'][0]*1.01]},
-                {'Npoints': [3], 't1': [10], 'dt': [10], 's_dR' : [baseValues['s_dR'][0],baseValues['s_dR'][0]*1.01]},
-                {'Npoints': [3], 't1': [10], 'dt': [10], 's_R1' : [baseValues['s_R1'][0],baseValues['s_R1'][0]*1.01]},
-                {'Npoints': [3], 't1': [10], 'dt': [10], 's_Tamb1' : [baseValues['s_Tamb1'][0],baseValues['s_Tamb1'][0]*1.01]},
-                {'Npoints': [3], 't1': [10], 'dt': [10], 's_Tamb2' : [baseValues['s_Tamb2'][0],baseValues['s_Tamb2'][0]*1.01]},
-                {'Npoints': [3], 't1': [10], 'dt': [10], 's_cvol' : [baseValues['s_cvol'][0],baseValues['s_cvol'][0]*1.01]},
-
-                {'Npoints': [19], 't1': [4], 'dt': [2], 's_t0' : [baseValues['s_t0'][0],baseValues['s_t0'][0]*1.01]},
-                {'Npoints': [19], 't1': [4], 'dt': [2], 's_dt' : [baseValues['s_dt'][0],baseValues['s_dt'][0]*1.01]},
-                {'Npoints': [19], 't1': [4], 'dt': [2], 's_dR' : [baseValues['s_dR'][0],baseValues['s_dR'][0]*1.01]},
-                {'Npoints': [19], 't1': [4], 'dt': [2], 's_R1' : [baseValues['s_R1'][0],baseValues['s_R1'][0]*1.01]},
-                {'Npoints': [19], 't1': [4], 'dt': [2], 's_Tamb1' : [baseValues['s_Tamb1'][0],baseValues['s_Tamb1'][0]*1.01]},
-                {'Npoints': [19], 't1': [4], 'dt': [2], 's_Tamb2' : [baseValues['s_Tamb2'][0],baseValues['s_Tamb2'][0]*1.01]},
-                {'Npoints': [19], 't1': [4], 'dt': [2], 's_cvol' : [baseValues['s_cvol'][0],baseValues['s_cvol'][0]*1.01]},
-
-                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_t0' : [baseValues['s_t0'][0],baseValues['s_t0'][0]*1.01]},
-                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_dt' : [baseValues['s_dt'][0],baseValues['s_dt'][0]*1.01]},
-                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_dR' : [baseValues['s_dR'][0],baseValues['s_dR'][0]*1.01]},
-                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_R1' : [baseValues['s_R1'][0],baseValues['s_R1'][0]*1.01]},
-                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_Tamb1' : [baseValues['s_Tamb1'][0],baseValues['s_Tamb1'][0]*1.01]},
-                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_Tamb2' : [baseValues['s_Tamb2'][0],baseValues['s_Tamb2'][0]*1.01]},
-                {'Npoints': [3], 't1': [4,20], 'dt': [2], 's_cvol' : [baseValues['s_cvol'][0],baseValues['s_cvol'][0]*1.01]}
+                {'Npoints': [3], 'N1': [0], 'dN': [1]},
                 ]
     
     # Parse the arguments
@@ -129,19 +112,23 @@ if __name__ == '__main__':
     if not os.path.exists(fsave):
         # Create the folder
         os.makedirs(fsave)
-    file_path = "Dados/data.csv"
+    file_path = "Dados/comp1.csv"
     df = pd.read_csv(file_path)
 
-    x_og = df['Time'].values
-    y_og = df['Resistance'].values
+    # x_og = np.array([15, 30, 45])
+    # y_og = np.array([1.2122381926, 1.2095643282, 1.2078597546]) # Mensagem 1 do Pacheco
+    # y_og = np.array([66.1523818970, 66.0512771606, 65.9900207520]) # Mensagem 2 do Pacheco
 
-    conditionsDone = pd.read_csv('Resultados/map_results.csv') if APPEND else None
+    x_og = np.array([60, 120, 180]) # Ponto 13 do Pacheco
+    y_og = np.array([37.7570381165, 37.6191291809, 37.5241394043]) # Ponto 13 do Pacheco
+
+    conditionsDone = pd.read_csv('Resultados/map_results_embraco3.csv') if APPEND else None
 
     conditions = generateConditions(baseValues, analysesAlter, x_og, conditionsDone)
 
     results = montecarlo_analysis(conditions, x_og, y_og)
 
     if APPEND:
-        results.to_csv(fsave + '/map_results.csv', mode='a', header=False, index=False)
+        results.to_csv(fsave + '/map_results_embraco3.csv', mode='a', header=False, index=False)
     else:
-        results.to_csv(fsave + '/map_results.csv', index=False)
+        results.to_csv(fsave + '/map_results_embraco3.csv', index=False)
