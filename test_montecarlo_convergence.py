@@ -1,11 +1,12 @@
 from fast_montecarlo import res_montecarlo_temp_montecarlo
 from tqdm import tqdm
 import pandas as pd
+import numpy as np
 import os
 
 if __name__ == '__main__':
-
-    n_tests = 100
+    
+    n_tests = 5
     fsave = 'Resultados'
 
     # Check if the folder exists
@@ -13,18 +14,18 @@ if __name__ == '__main__':
         # Create the folder
         os.makedirs(fsave)
 
-    n_montecarlo = [1e1, 2e1, 3e1, 4e1, 5e1, 6e1, 7e1, 8e1, 9e1, 1e2, 2e2, 3e2, 4e2, 5e2, 6e2, 7e2, 8e2, 9e2, 1e3, 2e3, 5e3, 1e4, 2e4, 5e4]
+    saveFile = f'{fsave}/convergence.csv'
+
+    n_montecarlo = [1e3, 2e3, 5e3, 1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6]
 
     results = []
 
     for N in tqdm(n_montecarlo, desc='Monte Carlo Convergence', position=0, leave=False):
         for i in tqdm(range(n_tests), desc='Test', position=1, leave=False):
-            tmonte, _,_ = res_montecarlo_temp_montecarlo(int(N), parallel=True)
-            tmonte['N'] = N
-            tmonte['test'] = i
-            del tmonte['parameters']
-            results.append(tmonte)
-
-    df = pd.DataFrame(results)
-    df.to_csv(f'{fsave}/convergence.csv', index=False)
+            tAll, _, _, _ = res_montecarlo_temp_montecarlo(N_montecarlo = int(N))
+            tmonte = {'mean_R2': np.mean(tAll['R2']), 'mean_T2': np.mean(tAll['T2']),
+                      'std_R2': np.std(tAll['R2']), 'std_T2': np.std(tAll['T2']),
+                      'time_elapsed': tAll['time_elapsed'], 'N': N} 
+            
+            pd.DataFrame([tmonte]).to_csv(saveFile, index=False, mode='a')
             

@@ -102,7 +102,7 @@ def res_montecarlo_temp_montecarlo(parallel = True,
     time_start = time.perf_counter()
 
 
-    print(f"Starting Monte Carlo simulation with {N_montecarlo} iterations...")
+    print(f"\nStarting Monte Carlo simulation with {N_montecarlo} iterations...\n")
     if parallel:
         n_jobs = os.cpu_count()
         with Pool(n_jobs) as p:
