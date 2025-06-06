@@ -40,7 +40,7 @@ def fast_process_montecarlo(xy, s_dt = 0.01, s_dR = 0.001):
 def generate_montecarlo_matrix(x_og, y_og, 
                                s_dt = 0.01, s_dR = 0.001, s_t0 = 0.01, s_R1 = 0.001, s_Tamb1 = 0.2, s_Tamb2 = 0.2, s_cvol = 1,
                                t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200, 
-                               Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100):
+                               Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100, uniformC = False, exponentialTf = False):
     # TODO: Add docstring
 
     # TODO: Alter the function to work for floats
@@ -63,8 +63,12 @@ def generate_montecarlo_matrix(x_og, y_og,
     # Monte Carlo simulation for deviation of sample time
     montecarlo_matrix_x = np.random.normal(x_tot, s_dt, (N_montecarlo,len(x_tot)))
 
-    # Monte Carlo simulation for deviation of initial time
-    montecarlo_t0 = np.random.normal(0, s_t0, (N_montecarlo, 1))
+    # Monte Carlo simulation for deviation of initial 
+    if exponentialTf:
+        # Non-uniform final temperature
+        montecarlo_t0 = np.random.exponential(s_t0, (N_montecarlo, 1))
+    else:
+        montecarlo_t0 = np.random.normal(0, s_t0, (N_montecarlo, 1))
     montecarlo_matrix_x = montecarlo_matrix_x + montecarlo_t0
 
     # Monte Carlo simulation for deviation of resistance measurement
@@ -76,7 +80,11 @@ def generate_montecarlo_matrix(x_og, y_og,
 
     montecarlo_matrix_R1 = np.random.normal(R1, s_R1, N_montecarlo)
 
-    montecarlo_matrix_k = 25450/np.random.normal(cvol, s_cvol, N_montecarlo) - 20
+    if uniformC:
+        # Monte Carlo simulation for deviation of copper volumetric conductivity
+        montecarlo_matrix_k = 25450/np.random.uniform(cvol - s_cvol, cvol + s_cvol, N_montecarlo) - 20
+    else:
+        montecarlo_matrix_k = 25450/np.random.normal(cvol, s_cvol, N_montecarlo) - 20
 
     montecarlo_matrix_xy = list(zip(montecarlo_matrix_x, montecarlo_matrix_y, montecarlo_matrix_Tamb_1, montecarlo_matrix_Tamb_2, montecarlo_matrix_R1, montecarlo_matrix_k)) 
 
@@ -85,7 +93,7 @@ def generate_montecarlo_matrix(x_og, y_og,
 def res_montecarlo_temp_montecarlo(parallel = True, 
                                    s_dt = 0.01, s_dR = 0.001, s_t0 = 0.01, s_R1 = 0.001, s_Tamb1 = 0.2, s_Tamb2 = 0.2, s_cvol = 1,
                                    t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200, 
-                                   Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100):
+                                   Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100, uniformC = False, exponentialTf = False):
     # TODO: Add docstring
     
     file_path = "Dados/data.csv"
@@ -97,7 +105,7 @@ def res_montecarlo_temp_montecarlo(parallel = True,
     montecarlo_matrix = generate_montecarlo_matrix(x_og, y_og, 
                                                    s_dt = s_dt, s_dR = s_dR, s_t0 = s_t0, s_R1 = s_R1, s_Tamb1 = s_Tamb1, s_Tamb2 = s_Tamb2, s_cvol = s_cvol,
                                                    t1 = t1, dt = dt, n_x = n_x, N_montecarlo = N_montecarlo,
-                                                   Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, cvol = cvol)
+                                                   Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, cvol = cvol, uniformC = uniformC, exponentialTf = exponentialTf)
 
     time_start = time.perf_counter()
 
@@ -161,6 +169,8 @@ if __name__ == '__main__':
     parser.add_argument('--s_Tamb2', type=float, default=0.2, help='Uncertainty of the final ambient temperature')
     parser.add_argument('--cvol', type=float, default=100, help='Copper volumetric conductivity')
     parser.add_argument('--s_cvol', type=float, default=1, help='Uncertainty of the copper volumetric conductivity')
+    parser.add_argument('--exponentialTf', action='store_true', help='Enable exponential final temperature')
+    parser.add_argument('--uniformC', action='store_true', help='Enable uniform volumetric conductivity')
 
     args = parser.parse_args()
 
@@ -185,6 +195,8 @@ if __name__ == '__main__':
     SAVE = args.NoSave
     TIMEIT = args.execTime
     PLOT = args.Plot
+    exponentialTf = args.exponentialTf
+    uniformC = args.uniformC
     N_montecarlo = args.N_montecarlo
     fname = args.fname
 
@@ -197,7 +209,8 @@ if __name__ == '__main__':
     results, x_og, y_og, montecarlo_vectors = res_montecarlo_temp_montecarlo(N_montecarlo = N_montecarlo, 
                                                                               s_dt = s_dt, s_dR = s_dR, s_t0 = analysis_param['s_t0'], s_R1 = s_R1, s_Tamb1 = s_Tamb1, s_Tamb2 = s_Tamb2, s_cvol = s_cvol,
                                                                               t1 = analysis_param['t1'], dt = analysis_param['dt'], n_x = analysis_param['Npoints'], 
-                                                                              Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, cvol = cvol)
+                                                                              Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, cvol = cvol, uniformC = uniformC,
+                                                                              exponentialTf = exponentialTf)
 
     if TIMEIT:
         elapsed_time = time.time() - start_time
