@@ -19,6 +19,23 @@ def exp_model(params, x):
 
     return params[0] + params[1]*np.exp(params[2]*x)
 
+def adjust_drift_temperature(k,time,resistance,T_start,T_drift):
+    # TODO: Add docstring
+
+    if not T_drift:
+        return resistance
+    
+    # Calculate the drift rate
+    drift_rate = T_drift / (time[-1] - time[0])
+
+    # Generate the drifted temperature values
+    drifted_temperature = drift_rate * (time - time[0])
+
+    # Adjust the resistance values based on the drifted temperature
+    resistance_drifted = drifted_temperature/(k+T_start)+resistance
+    
+    return resistance_drifted
+
 def fast_process_montecarlo(xy, s_dt = 0.01, s_dR = 0.001):
     # TODO: Add docstring
 
@@ -40,7 +57,7 @@ def fast_process_montecarlo(xy, s_dt = 0.01, s_dR = 0.001):
 def generate_montecarlo_matrix(x_og, y_og, 
                                s_dt = 0.01, s_dR = 0.001, s_t0 = 0.01, s_R1 = 0.001, s_Tamb1 = 0.2, s_Tamb2 = 0.2, s_cvol = 1,
                                t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200, 
-                               Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100, uniformC = False, exponentialTf = False):
+                               Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100, uniformC = False, exponentialTf = False, Tamb_drift = 0):
     # TODO: Add docstring
 
     # TODO: Alter the function to work for floats
@@ -86,6 +103,17 @@ def generate_montecarlo_matrix(x_og, y_og,
     else:
         montecarlo_matrix_k = 25450/np.random.normal(cvol, s_cvol, N_montecarlo) - 20
 
+    if Tamb_drift:
+        # Adjust the drift in ambient temperature after shutdown
+        for i in range(N_montecarlo):
+            montecarlo_matrix_y[i] = adjust_drift_temperature(
+            montecarlo_matrix_k[i], 
+            montecarlo_matrix_x[i], 
+            montecarlo_matrix_y[i], 
+            Tamb_2, 
+            Tamb_drift
+            )
+
     montecarlo_matrix_xy = list(zip(montecarlo_matrix_x, montecarlo_matrix_y, montecarlo_matrix_Tamb_1, montecarlo_matrix_Tamb_2, montecarlo_matrix_R1, montecarlo_matrix_k)) 
 
     return montecarlo_matrix_xy
@@ -93,7 +121,7 @@ def generate_montecarlo_matrix(x_og, y_og,
 def res_montecarlo_temp_montecarlo(parallel = True, 
                                    s_dt = 0.01, s_dR = 0.001, s_t0 = 0.01, s_R1 = 0.001, s_Tamb1 = 0.2, s_Tamb2 = 0.2, s_cvol = 1,
                                    t1 = 4, dt = 2, n_x = 19, N_montecarlo = 200, 
-                                   Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100, uniformC = False, exponentialTf = False):
+                                   Tamb_1 = 24, Tamb_2 = 24, R1 = 15.39, cvol = 100, uniformC = False, exponentialTf = False, Tamb_drift = 0):
     # TODO: Add docstring
     
     file_path = "Dados/data.csv"
@@ -105,7 +133,7 @@ def res_montecarlo_temp_montecarlo(parallel = True,
     montecarlo_matrix = generate_montecarlo_matrix(x_og, y_og, 
                                                    s_dt = s_dt, s_dR = s_dR, s_t0 = s_t0, s_R1 = s_R1, s_Tamb1 = s_Tamb1, s_Tamb2 = s_Tamb2, s_cvol = s_cvol,
                                                    t1 = t1, dt = dt, n_x = n_x, N_montecarlo = N_montecarlo,
-                                                   Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, cvol = cvol, uniformC = uniformC, exponentialTf = exponentialTf)
+                                                   Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, cvol = cvol, uniformC = uniformC, exponentialTf = exponentialTf, Tamb_drift= Tamb_drift)
 
     time_start = time.perf_counter()
 
@@ -171,6 +199,7 @@ if __name__ == '__main__':
     parser.add_argument('--s_cvol', type=float, default=1, help='Uncertainty of the copper volumetric conductivity')
     parser.add_argument('--exponentialTf', action='store_true', help='Enable exponential final temperature')
     parser.add_argument('--uniformC', action='store_true', help='Enable uniform volumetric conductivity')
+    parser.add_argument('--Tamb_drift', type=float, default=0, help='Drift in ambient temperature after shutdown')
 
     args = parser.parse_args()
 
@@ -189,6 +218,7 @@ if __name__ == '__main__':
     s_Tamb2 = args.s_Tamb2
     cvol = args.cvol
     s_cvol = args.s_cvol
+    Tamb_drift = args.Tamb_drift
 
     k = 25450/cvol - 20 # Recíproca do coeficiente de temperatura do cobre a 0°C
 
@@ -210,7 +240,7 @@ if __name__ == '__main__':
                                                                               s_dt = s_dt, s_dR = s_dR, s_t0 = analysis_param['s_t0'], s_R1 = s_R1, s_Tamb1 = s_Tamb1, s_Tamb2 = s_Tamb2, s_cvol = s_cvol,
                                                                               t1 = analysis_param['t1'], dt = analysis_param['dt'], n_x = analysis_param['Npoints'], 
                                                                               Tamb_1 = Tamb_1, Tamb_2 = Tamb_2, R1 = R1, cvol = cvol, uniformC = uniformC,
-                                                                              exponentialTf = exponentialTf)
+                                                                              exponentialTf = exponentialTf, Tamb_drift = Tamb_drift)
 
     if TIMEIT:
         elapsed_time = time.time() - start_time
