@@ -65,12 +65,15 @@ if __name__ == "__main__":
         "Variation 1.3"]
     
     cm = 1/2.54 
-    fig, ax = plt.subplots(4, 1, figsize=(10*cm, 14*cm))
+    fig, ax = plt.subplots(4, 1, figsize=(10*cm, 12*cm))
 
     for files, ax, title in zip(testFiles, ax, titles):
         plot_test_pdf(ax, files, labels, title)
 
     plt.tight_layout()
-    plt.show()
-    # plt.savefig("Resultados/extraTests.pdf")
+    # plt.show()
+    plt.savefig("Gráficos/extraTests.pdf")
+    plt.close(fig)
+
+
         
